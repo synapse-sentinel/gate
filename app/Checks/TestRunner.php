@@ -78,26 +78,23 @@ final class TestRunner implements CheckInterface
     {
         $details = [];
 
-        // Extract failed test names and messages
-        // Pest format: FAIL  Tests\Unit\ExampleTest > it does something
-        if (preg_match_all('/FAIL\s+(.+?)\n\s*(.+?)(?=\n\s*at|\n\s*FAIL|\n\s*Tests:|\z)/s', $output, $matches, PREG_SET_ORDER)) {
-            foreach ($matches as $match) {
-                $testName = trim($match[1]);
-                $message = trim(preg_replace('/\s+/', ' ', $match[2]));
-                if (strlen($message) > 100) {
-                    $message = substr($message, 0, 100) . '...';
-                }
-                $details[] = "{$testName}: {$message}";
+        // Extract failed test names - look for the FAIL marker
+        // Pest format: ⨯ TestName → it does something
+        if (preg_match_all('/[⨯✗]\s*(.+?→.+?)(?:\s+[\d.]+s|\n)/u', $output, $matches)) {
+            foreach (array_slice($matches[1], 0, 5) as $test) {
+                $details[] = trim($test);
             }
         }
 
-        // If coverage failure, show what's uncovered
-        if (preg_match('/Code coverage below expected/', $output)) {
-            if (preg_match('/Total:\s*([\d.]+)%/', $output, $match)) {
-                $details[] = "Actual coverage: {$match[1]}%";
+        // If coverage failure, show the gap
+        if (preg_match('/Code coverage below expected:\s*([\d.]+)%/', $output, $match)) {
+            $details[] = "Coverage: {$match[1]}% (need {$this->coverageThreshold}%)";
+        } elseif (preg_match('/Total:\s*([\d.]+)%/', $output, $match)) {
+            if ((float) $match[1] < $this->coverageThreshold) {
+                $details[] = "Coverage: {$match[1]}% (need {$this->coverageThreshold}%)";
             }
         }
 
-        return array_slice($details, 0, 5); // Limit to 5 details
+        return $details;
     }
 }

@@ -8,6 +8,9 @@ use App\Checks\TestRunner;
 use App\GitHub\ChecksClient;
 use LaravelZero\Framework\Commands\Command;
 
+use function Laravel\Prompts\error;
+use function Laravel\Prompts\info;
+
 final class TestsCommand extends Command
 {
     protected $signature = 'tests
@@ -34,23 +37,17 @@ final class TestsCommand extends Command
         );
 
         if ($result->passed) {
-            $this->line('<info>Tests & Coverage</info> <fg=green>✓</>');
+            info("Tests & Coverage ✓");
             return self::SUCCESS;
         }
 
-        $this->line('<info>Tests & Coverage</info> <fg=red>✗</>');
-        $this->newLine();
-        $this->outputFailure($result->message, $result->details);
+        error("Tests & Coverage ✗");
+        error($result->message);
+
+        foreach ($result->details as $detail) {
+            $this->line("  {$detail}");
+        }
 
         return self::FAILURE;
-    }
-
-    private function outputFailure(string $message, array $details): void
-    {
-        $this->error("  {$message}");
-
-        foreach ($details as $detail) {
-            $this->line("  <fg=gray>•</> {$detail}");
-        }
     }
 }

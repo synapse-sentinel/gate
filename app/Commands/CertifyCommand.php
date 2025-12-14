@@ -12,6 +12,9 @@ use App\GitHub\ChecksClient;
 use App\Verdict;
 use LaravelZero\Framework\Commands\Command;
 
+use function Laravel\Prompts\error;
+use function Laravel\Prompts\info;
+
 final class CertifyCommand extends Command
 {
     protected $signature = 'certify
@@ -22,10 +25,6 @@ final class CertifyCommand extends Command
 
     public function handle(): int
     {
-        $this->newLine();
-        $this->line('<fg=blue>🛡️  Synapse Sentinel Gate</>');
-        $this->newLine();
-
         $coverageThreshold = (int) $this->option('coverage');
         $token = $this->option('token') ?: getenv('GITHUB_TOKEN') ?: null;
         $checksClient = new ChecksClient($token);
@@ -68,23 +67,20 @@ final class CertifyCommand extends Command
 
         // Output verdict
         if ($verdict->isApproved()) {
-            $this->info('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-            $this->info('  ✓ SENTINEL CERTIFICATION: APPROVED');
-            $this->info('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+            info('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+            info('  ✓ SENTINEL CERTIFICATION: APPROVED');
+            info('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
         } else {
-            $this->error('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-            $this->error('  ✗ SENTINEL CERTIFICATION: REJECTED');
-            $this->error('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+            error('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+            error('  ✗ SENTINEL CERTIFICATION: REJECTED');
+            error('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
             $this->newLine();
 
-            // Show failure details
             foreach ($failureDetails as $checkName => $data) {
-                $this->line("<fg=red>  {$checkName}:</>");
-                $this->line("    {$data['message']}");
+                error("  {$checkName}: {$data['message']}");
                 foreach ($data['details'] as $detail) {
-                    $this->line("    <fg=gray>•</> {$detail}");
+                    $this->line("    {$detail}");
                 }
-                $this->newLine();
             }
         }
 
@@ -121,9 +117,9 @@ final class CertifyCommand extends Command
 
         // Console output - minimal
         if ($result->passed) {
-            $this->line("<info>{$check->name()}</info> <fg=green>✓</>");
+            info("{$check->name()} ✓");
         } else {
-            $this->line("<info>{$check->name()}</info> <fg=red>✗</>");
+            error("{$check->name()} ✗");
         }
 
         return $result;

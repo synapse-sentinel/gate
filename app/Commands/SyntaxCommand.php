@@ -8,6 +8,9 @@ use App\Checks\PestSyntaxValidator;
 use App\GitHub\ChecksClient;
 use LaravelZero\Framework\Commands\Command;
 
+use function Laravel\Prompts\error;
+use function Laravel\Prompts\info;
+
 final class SyntaxCommand extends Command
 {
     protected $signature = 'syntax
@@ -32,16 +35,15 @@ final class SyntaxCommand extends Command
         );
 
         if ($result->passed) {
-            $this->line('<info>Pest Syntax</info> <fg=green>✓</>');
+            info("Pest Syntax ✓");
             return self::SUCCESS;
         }
 
-        $this->line('<info>Pest Syntax</info> <fg=red>✗</>');
-        $this->newLine();
-        $this->error("  {$result->message}");
+        error("Pest Syntax ✗");
+        error($result->message);
 
         foreach ($result->details as $detail) {
-            $this->line("  <fg=gray>•</> {$detail}");
+            $this->line("  {$detail}");
         }
 
         return self::FAILURE;

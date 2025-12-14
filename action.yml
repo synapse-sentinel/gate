@@ -35,7 +35,7 @@ outputs:
 runs:
   using: 'composite'
   steps:
-    - name: Setup PHP
+    - name: Setup
       uses: shivammathur/setup-php@v2
       with:
         php-version: ${{ inputs.php-version }}
@@ -43,37 +43,16 @@ runs:
         coverage: xdebug
         tools: composer:v2
 
-    - name: Get Composer cache directory
-      id: composer-cache-dir
-      shell: bash
-      run: echo "dir=$(composer config cache-files-dir)" >> $GITHUB_OUTPUT
-
-    - name: Cache Composer dependencies
-      uses: actions/cache@v4
-      with:
-        path: ${{ steps.composer-cache-dir.outputs.dir }}
-        key: ${{ runner.os }}-composer-${{ hashFiles('**/composer.lock') }}
-        restore-keys: ${{ runner.os }}-composer-
-
-    - name: Install project dependencies
-      shell: bash
-      run: composer install --prefer-dist --no-progress --no-interaction --quiet
-
-    - name: Cache Gate dependencies
-      uses: actions/cache@v4
-      with:
-        path: ${{ github.action_path }}/vendor
-        key: gate-vendor-${{ hashFiles(format('{0}/composer.lock', github.action_path)) }}
-        restore-keys: gate-vendor-
-
-    - name: Install Gate
+    - name: Install
       shell: bash
       run: |
+        composer config cache-files-dir ~/.composer/cache 2>/dev/null || true
+        composer install --prefer-dist --no-progress --no-interaction --quiet 2>/dev/null || composer install --prefer-dist --no-progress --no-interaction
         if [ ! -d "${{ github.action_path }}/vendor" ]; then
-          composer install --working-dir=${{ github.action_path }} --no-dev --prefer-dist --no-progress --no-interaction --quiet
+          composer install --working-dir=${{ github.action_path }} --no-dev --prefer-dist --no-progress --no-interaction --quiet 2>/dev/null || true
         fi
 
-    - name: Run Gate
+    - name: Gate
       id: gate
       shell: bash
       env:
