@@ -14,7 +14,11 @@ inputs:
   php-version:
     description: 'PHP version to use'
     required: false
-    default: '8.3'
+    default: '8.4'
+  github-token:
+    description: 'GitHub token for creating check runs (requires checks:write permission)'
+    required: false
+    default: ${{ github.token }}
 
 outputs:
   verdict:
@@ -70,6 +74,8 @@ runs:
       shell: bash
       env:
         GITHUB_STEP_SUMMARY: ${{ github.step_summary }}
+        GITHUB_TOKEN: ${{ inputs.github-token }}
       run: |
         php ${{ github.action_path }}/gate run \
-          --coverage=${{ inputs.coverage-threshold }}
+          --coverage=${{ inputs.coverage-threshold }} \
+          --token=${{ inputs.github-token }}

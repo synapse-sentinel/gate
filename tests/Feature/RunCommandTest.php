@@ -32,4 +32,11 @@ describe('RunCommand', function () {
 
         expect($definition->hasOption('pr'))->toBeTrue();
     });
+
+    it('has token option for GitHub Checks API', function () {
+        $command = new RunCommand();
+        $definition = $command->getDefinition();
+
+        expect($definition->hasOption('token'))->toBeTrue();
+    });
 });
