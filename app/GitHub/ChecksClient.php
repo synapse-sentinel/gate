@@ -104,10 +104,8 @@ final class ChecksClient
             return false;
         }
 
-        echo "::debug::Creating check run '{$name}' for {$this->repo}@{$this->sha}\n";
-
         try {
-            $response = $this->client->post("repos/{$this->repo}/check-runs", [
+            $this->client->post("repos/{$this->repo}/check-runs", [
                 'json' => [
                     'name' => $name,
                     'head_sha' => $this->sha,
@@ -122,8 +120,6 @@ final class ChecksClient
                 ],
             ]);
 
-            $status = $response->getStatusCode();
-            echo "::notice::Check run '{$name}' created (HTTP {$status})\n";
             return true;
         } catch (GuzzleException $e) {
             echo "::warning::ChecksClient error: {$e->getMessage()}\n";
