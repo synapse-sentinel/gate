@@ -39,6 +39,9 @@ outputs:
   reason:
     description: 'Reason for the verdict'
     value: ${{ steps.gate.outputs.reason }}
+  badge:
+    description: 'Markdown badge for README'
+    value: '[![🏆 Sentinel Certified](https://img.shields.io/github/actions/workflow/status/${{ github.repository }}/gate.yml?label=🏆%20Sentinel%20Certified&style=flat-square)](https://github.com/${{ github.repository }}/actions/workflows/gate.yml)'
 
 runs:
   using: 'composite'
