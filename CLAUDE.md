@@ -11,8 +11,16 @@ Built with Laravel Zero for clean CLI architecture.
 ## Development Commands
 
 ```bash
-# Run the gate locally
-php gate run --coverage=100
+# Run full certification (all checks)
+php gate certify --coverage=80
+
+# Run full certification with compact output
+php gate certify --coverage=80 --compact
+
+# Run individual checks
+php gate tests --coverage=80
+php gate security
+php gate syntax
 
 # Run tests
 vendor/bin/pest
@@ -29,7 +37,7 @@ composer audit
 ### GitHub Action Flow
 Consumer repos use: `uses: synapse-sentinel/gate@v1`
 → Composite action sets up PHP
-→ Runs `php gate run`
+→ Runs `php gate certify`
 → Outputs verdict + annotations
 → Exit 0 (green) or 1 (red)
 
@@ -37,13 +45,19 @@ Consumer repos use: `uses: synapse-sentinel/gate@v1`
 
 ```
 app/
-├── Commands/RunCommand.php    # CLI entry point
+├── Commands/
+│   ├── CertifyCommand.php     # Full certification (all checks)
+│   ├── TestsCommand.php       # Tests + coverage check
+│   ├── SecurityCommand.php    # Security audit
+│   └── SyntaxCommand.php      # Pest syntax validation
 ├── Verdict.php                # Value object (approved/rejected/escalate)
 ├── Checks/                    # Individual quality checks
 │   ├── CheckInterface.php
-│   ├── TestRunner.php         # pest --coverage --min=X (tests + coverage in one run)
+│   ├── TestRunner.php         # pest --coverage --min=X
 │   ├── SecurityScanner.php    # composer audit
 │   └── PestSyntaxValidator.php # Validates describe/it blocks
+├── GitHub/
+│   └── ChecksClient.php       # GitHub Checks API integration
 └── Stages/
     └── TechnicalGate.php      # Orchestrates all checks
 ```

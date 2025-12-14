@@ -31,6 +31,10 @@ inputs:
     description: 'Merge method: squash, merge, or rebase'
     required: false
     default: 'squash'
+  compact:
+    description: 'Use compact single-line output instead of verbose'
+    required: false
+    default: 'false'
 
 outputs:
   verdict:
@@ -88,7 +92,8 @@ runs:
           certify|*)
             php ${{ github.action_path }}/gate certify \
               --coverage=${{ inputs.coverage-threshold }} \
-              --token=${{ inputs.github-token }}
+              --token=${{ inputs.github-token }} \
+              ${{ inputs.compact == 'true' && '--compact' || '' }}
             ;;
         esac
 

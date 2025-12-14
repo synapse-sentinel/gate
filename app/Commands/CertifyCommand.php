@@ -22,7 +22,8 @@ final class CertifyCommand extends Command
 {
     protected $signature = 'certify
         {--coverage=80 : Minimum coverage threshold percentage}
-        {--token= : GitHub token for Checks API}';
+        {--token= : GitHub token for Checks API}
+        {--compact : Show single-line output instead of verbose}';
 
     protected $description = 'Run all checks and issue Sentinel Certification';
 
@@ -30,6 +31,7 @@ final class CertifyCommand extends Command
     {
         $coverageThreshold = (int) $this->option('coverage');
         $token = $this->option('token') ?: getenv('GITHUB_TOKEN') ?: null;
+        $compact = (bool) $this->option('compact');
         $checksClient = new ChecksClient($token);
         $workingDirectory = getcwd();
 
@@ -41,9 +43,15 @@ final class CertifyCommand extends Command
 
         $failures = [];
         $failureRows = [];
+        $compactResults = [];
 
         foreach ($checks as $check) {
-            $result = $this->runCheck($check, $workingDirectory, $checksClient);
+            $result = $this->runCheck($check, $workingDirectory, $checksClient, $compact);
+            $compactResults[] = [
+                'name' => $this->shortName($check->name()),
+                'passed' => $result->passed,
+                'message' => $result->message,
+            ];
             if (! $result->passed) {
                 $failures[] = "[{$check->name()}] {$result->message}";
                 foreach ($result->details as $detail) {
@@ -70,7 +78,9 @@ final class CertifyCommand extends Command
         );
 
         // Output verdict
-        if ($verdict->isApproved()) {
+        if ($compact) {
+            $this->renderCompactOutput($compactResults, $verdict);
+        } elseif ($verdict->isApproved()) {
             info('');
             info('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
             info('  ✓ SENTINEL CERTIFICATION: APPROVED');
@@ -109,11 +119,16 @@ final class CertifyCommand extends Command
         CheckInterface $check,
         string $workingDirectory,
         ChecksClient $checksClient,
+        bool $compact = false,
     ): \App\Checks\CheckResult {
-        $result = spin(
-            fn () => $check->run($workingDirectory),
-            "Running {$check->name()}..."
-        );
+        if ($compact) {
+            $result = $check->run($workingDirectory);
+        } else {
+            $result = spin(
+                fn () => $check->run($workingDirectory),
+                "Running {$check->name()}..."
+            );
+        }
 
         // Report to GitHub Checks API
         $checksClient->reportCheck(
@@ -123,13 +138,43 @@ final class CertifyCommand extends Command
             summary: $result->message,
         );
 
-        // Console output
-        if ($result->passed) {
-            info("{$check->name()} ✓");
-        } else {
-            error("{$check->name()} ✗");
+        // Console output (skip in compact mode - we'll show summary at end)
+        if (! $compact) {
+            if ($result->passed) {
+                info("{$check->name()} ✓");
+            } else {
+                error("{$check->name()} ✗");
+            }
         }
 
         return $result;
+    }
+
+    private function shortName(string $name): string
+    {
+        return match ($name) {
+            'Tests & Coverage' => 'Tests',
+            'Security Audit' => 'Security',
+            'Pest Syntax' => 'Syntax',
+            default => $name,
+        };
+    }
+
+    private function renderCompactOutput(array $results, Verdict $verdict): void
+    {
+        $parts = [];
+        foreach ($results as $r) {
+            $icon = $r['passed'] ? '✓' : '✗';
+            $parts[] = "{$r['name']} {$icon}";
+        }
+
+        $status = $verdict->isApproved() ? '✓ APPROVED' : '✗ REJECTED';
+        $line = implode('  ', $parts) . "  │  {$status}";
+
+        if ($verdict->isApproved()) {
+            info($line);
+        } else {
+            error($line);
+        }
     }
 }
