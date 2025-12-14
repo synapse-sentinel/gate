@@ -37,7 +37,7 @@ final class SyntaxCommand extends Command
             : count($result->details) . ' files using test()';
 
         $checksClient->reportCheck(
-            name: 'Synapse Sentinel: Pest Syntax',
+            name: '📝 Pest Syntax',
             passed: $result->passed,
             title: $title,
             summary: $result->message,

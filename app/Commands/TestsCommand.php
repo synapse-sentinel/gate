@@ -35,7 +35,7 @@ final class TestsCommand extends Command
         );
 
         $checksClient->reportCheck(
-            name: 'Synapse Sentinel: Tests & Coverage',
+            name: '🧪 Tests & Coverage',
             passed: $result->passed,
             title: $result->message,
             summary: $this->formatSummary($result),

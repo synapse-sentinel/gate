@@ -62,7 +62,7 @@ final class CertifyCommand extends Command
             : count($failures) . ' check(s) failed';
 
         $checksClient->reportCheck(
-            name: 'Synapse Sentinel: Certification',
+            name: '🏆 Synapse Sentinel',
             passed: $verdict->isApproved(),
             title: $title,
             summary: $verdict->toMarkdown(),
@@ -114,9 +114,17 @@ final class CertifyCommand extends Command
             "Running {$check->name()}..."
         );
 
+        // Map check names to badges
+        $badges = [
+            'Tests & Coverage' => '🧪',
+            'Security Audit' => '🔒',
+            'Pest Syntax' => '📝',
+        ];
+        $badge = $badges[$check->name()] ?? '🔍';
+
         // Report to GitHub Checks API
         $checksClient->reportCheck(
-            name: 'Synapse Sentinel: ' . $check->name(),
+            name: "{$badge} {$check->name()}",
             passed: $result->passed,
             title: $result->message,
             summary: $result->message,
