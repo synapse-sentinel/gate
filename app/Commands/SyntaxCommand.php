@@ -32,10 +32,14 @@ final class SyntaxCommand extends Command
             'Validating test syntax...'
         );
 
+        $title = $result->passed
+            ? 'All tests use describe/it'
+            : count($result->details) . ' files using test()';
+
         $checksClient->reportCheck(
-            name: 'Pest Syntax',
+            name: '🛡️ Pest Syntax',
             passed: $result->passed,
-            title: $result->passed ? 'Passed' : 'Invalid Syntax',
+            title: $title,
             summary: $result->message,
         );
 

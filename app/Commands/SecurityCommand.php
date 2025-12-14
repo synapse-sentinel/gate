@@ -33,9 +33,9 @@ final class SecurityCommand extends Command
         );
 
         $checksClient->reportCheck(
-            name: 'Security Audit',
+            name: '🛡️ Security Audit',
             passed: $result->passed,
-            title: $result->passed ? 'Passed' : 'Vulnerabilities Found',
+            title: $result->message,
             summary: $result->message,
         );
 

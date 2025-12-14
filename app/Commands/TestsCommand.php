@@ -35,9 +35,9 @@ final class TestsCommand extends Command
         );
 
         $checksClient->reportCheck(
-            name: 'Tests & Coverage',
+            name: '🛡️ Tests & Coverage',
             passed: $result->passed,
-            title: $result->passed ? 'Passed' : 'Failed',
+            title: $result->passed ? $result->message : $result->message,
             summary: $this->formatSummary($result),
         );
 
