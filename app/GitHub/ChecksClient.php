@@ -99,6 +99,8 @@ final class ChecksClient
         string $summary,
     ): bool {
         if (! $this->isAvailable()) {
+            $hasToken = $this->token ? 'yes' : 'no';
+            fwrite(STDERR, "ChecksClient: Not available (token={$hasToken}, repo={$this->repo}, sha={$this->sha})\n");
             return false;
         }
 
@@ -119,7 +121,8 @@ final class ChecksClient
             ]);
 
             return true;
-        } catch (GuzzleException) {
+        } catch (GuzzleException $e) {
+            fwrite(STDERR, "ChecksClient error: {$e->getMessage()}\n");
             return false;
         }
     }
