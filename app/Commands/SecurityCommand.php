@@ -10,6 +10,8 @@ use LaravelZero\Framework\Commands\Command;
 
 use function Laravel\Prompts\error;
 use function Laravel\Prompts\info;
+use function Laravel\Prompts\spin;
+use function Laravel\Prompts\table;
 
 final class SecurityCommand extends Command
 {
@@ -24,9 +26,12 @@ final class SecurityCommand extends Command
         $checksClient = new ChecksClient($token);
 
         $check = new SecurityScanner();
-        $result = $check->run(getcwd());
 
-        // Report to GitHub Checks API
+        $result = spin(
+            fn () => $check->run(getcwd()),
+            'Auditing dependencies...'
+        );
+
         $checksClient->reportCheck(
             name: 'Security Audit',
             passed: $result->passed,
@@ -42,8 +47,11 @@ final class SecurityCommand extends Command
         error("Security Audit ✗");
         error($result->message);
 
-        foreach ($result->details as $detail) {
-            $this->line("  {$detail}");
+        if (! empty($result->details)) {
+            table(
+                headers: ['Vulnerabilities'],
+                rows: array_map(fn ($d) => [$d], $result->details)
+            );
         }
 
         return self::FAILURE;

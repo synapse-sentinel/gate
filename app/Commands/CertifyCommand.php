@@ -14,6 +14,8 @@ use LaravelZero\Framework\Commands\Command;
 
 use function Laravel\Prompts\error;
 use function Laravel\Prompts\info;
+use function Laravel\Prompts\spin;
+use function Laravel\Prompts\table;
 
 final class CertifyCommand extends Command
 {
@@ -37,20 +39,17 @@ final class CertifyCommand extends Command
         ];
 
         $failures = [];
-        $failureDetails = [];
+        $failureRows = [];
 
         foreach ($checks as $check) {
             $result = $this->runCheck($check, $workingDirectory, $checksClient);
             if (! $result->passed) {
                 $failures[] = "[{$check->name()}] {$result->message}";
-                $failureDetails[$check->name()] = [
-                    'message' => $result->message,
-                    'details' => $result->details,
-                ];
+                foreach ($result->details as $detail) {
+                    $failureRows[] = [$check->name(), $detail];
+                }
             }
         }
-
-        $this->newLine();
 
         // Determine overall verdict
         $verdict = empty($failures)
@@ -67,20 +66,21 @@ final class CertifyCommand extends Command
 
         // Output verdict
         if ($verdict->isApproved()) {
-            info('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+            info('');
+            info('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
             info('  ✓ SENTINEL CERTIFICATION: APPROVED');
-            info('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+            info('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
         } else {
-            error('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+            error('');
+            error('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
             error('  ✗ SENTINEL CERTIFICATION: REJECTED');
-            error('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-            $this->newLine();
+            error('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
 
-            foreach ($failureDetails as $checkName => $data) {
-                error("  {$checkName}: {$data['message']}");
-                foreach ($data['details'] as $detail) {
-                    $this->line("    {$detail}");
-                }
+            if (! empty($failureRows)) {
+                table(
+                    headers: ['Check', 'Issue'],
+                    rows: $failureRows
+                );
             }
         }
 
@@ -105,7 +105,10 @@ final class CertifyCommand extends Command
         string $workingDirectory,
         ChecksClient $checksClient,
     ): \App\Checks\CheckResult {
-        $result = $check->run($workingDirectory);
+        $result = spin(
+            fn () => $check->run($workingDirectory),
+            "Running {$check->name()}..."
+        );
 
         // Report to GitHub Checks API
         $checksClient->reportCheck(
@@ -115,7 +118,7 @@ final class CertifyCommand extends Command
             summary: $result->message,
         );
 
-        // Console output - minimal
+        // Console output
         if ($result->passed) {
             info("{$check->name()} ✓");
         } else {

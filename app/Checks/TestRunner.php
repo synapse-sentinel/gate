@@ -78,15 +78,19 @@ final class TestRunner implements CheckInterface
     {
         $details = [];
 
-        // Extract failed test names - look for the FAIL marker
-        // Pest format: ⨯ TestName → it does something
-        if (preg_match_all('/[⨯✗]\s*(.+?→.+?)(?:\s+[\d.]+s|\n)/u', $output, $matches)) {
-            foreach (array_slice($matches[1], 0, 5) as $test) {
-                $details[] = trim($test);
+        // Split output into lines and find failures
+        $lines = explode("\n", $output);
+        foreach ($lines as $line) {
+            // Look for failed test markers: ⨯ or FAIL
+            if (preg_match('/[⨯✗]\s*(.+?→.+?)(?:\s+[\d.]+s)?$/u', trim($line), $match)) {
+                $details[] = trim($match[1]);
             }
         }
 
-        // If coverage failure, show the gap
+        // Limit to 5 failures
+        $details = array_slice($details, 0, 5);
+
+        // Add coverage info if below threshold
         if (preg_match('/Code coverage below expected:\s*([\d.]+)%/', $output, $match)) {
             $details[] = "Coverage: {$match[1]}% (need {$this->coverageThreshold}%)";
         } elseif (preg_match('/Total:\s*([\d.]+)%/', $output, $match)) {

@@ -10,6 +10,8 @@ use LaravelZero\Framework\Commands\Command;
 
 use function Laravel\Prompts\error;
 use function Laravel\Prompts\info;
+use function Laravel\Prompts\spin;
+use function Laravel\Prompts\table;
 
 final class SyntaxCommand extends Command
 {
@@ -24,9 +26,12 @@ final class SyntaxCommand extends Command
         $checksClient = new ChecksClient($token);
 
         $check = new PestSyntaxValidator();
-        $result = $check->run(getcwd());
 
-        // Report to GitHub Checks API
+        $result = spin(
+            fn () => $check->run(getcwd()),
+            'Validating test syntax...'
+        );
+
         $checksClient->reportCheck(
             name: 'Pest Syntax',
             passed: $result->passed,
@@ -42,8 +47,11 @@ final class SyntaxCommand extends Command
         error("Pest Syntax ✗");
         error($result->message);
 
-        foreach ($result->details as $detail) {
-            $this->line("  {$detail}");
+        if (! empty($result->details)) {
+            table(
+                headers: ['Files using test() instead of describe/it'],
+                rows: array_map(fn ($d) => [$d], $result->details)
+            );
         }
 
         return self::FAILURE;
