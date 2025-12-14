@@ -1,0 +1,10 @@
+/vendor/
+/.idea/
+/.vscode/
+/.phpunit.cache/
+/.pest/
+/coverage/
+.DS_Store
+*.swp
+*.swo
+.env

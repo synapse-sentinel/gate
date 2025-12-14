@@ -1,0 +1,44 @@
+{
+    "name": "synapse-sentinel/gate",
+    "description": "Universal code quality gate for the Synapse Sentinel ecosystem",
+    "license": "GPL-3.0-or-later",
+    "type": "project",
+    "keywords": ["console", "cli", "quality-gate", "github-action"],
+    "authors": [
+        {
+            "name": "Jordan Partridge",
+            "email": "jordan@partridge.rocks"
+        }
+    ],
+    "require": {
+        "php": "^8.3",
+        "laravel-zero/framework": "^11.0",
+        "symfony/process": "^7.0"
+    },
+    "require-dev": {
+        "laravel/pint": "^1.18",
+        "mockery/mockery": "^1.6",
+        "pestphp/pest": "^3.7"
+    },
+    "autoload": {
+        "psr-4": {
+            "App\\": "app/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Tests\\": "tests/"
+        }
+    },
+    "config": {
+        "preferred-install": "dist",
+        "sort-packages": true,
+        "optimize-autoloader": true,
+        "allow-plugins": {
+            "pestphp/pest-plugin": true
+        }
+    },
+    "minimum-stability": "stable",
+    "prefer-stable": true,
+    "bin": ["gate"]
+}
