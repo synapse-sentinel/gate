@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Commands;
 
+use App\Branding;
 use App\Checks\SecurityScanner;
 use App\GitHub\ChecksClient;
 use LaravelZero\Framework\Commands\Command;
@@ -33,7 +34,7 @@ final class SecurityCommand extends Command
         );
 
         $checksClient->reportCheck(
-            name: '🔒 Security Audit',
+            name: Branding::SECURITY,
             passed: $result->passed,
             title: $result->message,
             summary: $result->message,

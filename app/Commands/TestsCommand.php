@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Commands;
 
+use App\Branding;
 use App\Checks\TestRunner;
 use App\GitHub\ChecksClient;
 use LaravelZero\Framework\Commands\Command;
@@ -35,7 +36,7 @@ final class TestsCommand extends Command
         );
 
         $checksClient->reportCheck(
-            name: '🧪 Tests & Coverage',
+            name: Branding::TESTS,
             passed: $result->passed,
             title: $result->message,
             summary: $this->formatSummary($result),

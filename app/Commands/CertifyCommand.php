@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Commands;
 
+use App\Branding;
 use App\Checks\CheckInterface;
 use App\Checks\PestSyntaxValidator;
 use App\Checks\SecurityScanner;
@@ -62,7 +63,7 @@ final class CertifyCommand extends Command
             : count($failures) . ' check(s) failed';
 
         $checksClient->reportCheck(
-            name: '🏆 Synapse Sentinel',
+            name: Branding::CERTIFICATION,
             passed: $verdict->isApproved(),
             title: $title,
             summary: $verdict->toMarkdown(),
@@ -114,17 +115,9 @@ final class CertifyCommand extends Command
             "Running {$check->name()}..."
         );
 
-        // Map check names to badges
-        $badges = [
-            'Tests & Coverage' => '🧪',
-            'Security Audit' => '🔒',
-            'Pest Syntax' => '📝',
-        ];
-        $badge = $badges[$check->name()] ?? '🔍';
-
         // Report to GitHub Checks API
         $checksClient->reportCheck(
-            name: "{$badge} {$check->name()}",
+            name: Branding::checkName($check->name()),
             passed: $result->passed,
             title: $result->message,
             summary: $result->message,

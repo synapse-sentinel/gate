@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Commands;
 
+use App\Branding;
 use App\Checks\PestSyntaxValidator;
 use App\GitHub\ChecksClient;
 use LaravelZero\Framework\Commands\Command;
@@ -37,7 +38,7 @@ final class SyntaxCommand extends Command
             : count($result->details) . ' files using test()';
 
         $checksClient->reportCheck(
-            name: '📝 Pest Syntax',
+            name: Branding::SYNTAX,
             passed: $result->passed,
             title: $title,
             summary: $result->message,
