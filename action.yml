@@ -23,6 +23,14 @@ inputs:
     description: 'GitHub token for creating check runs (requires checks:write permission)'
     required: false
     default: ${{ github.token }}
+  auto-merge:
+    description: 'Automatically merge PR when certification passes'
+    required: false
+    default: 'false'
+  merge-method:
+    description: 'Merge method: squash, merge, or rebase'
+    required: false
+    default: 'squash'
 
 outputs:
   verdict:
@@ -80,3 +88,13 @@ runs:
               --token=${{ inputs.github-token }}
             ;;
         esac
+
+    - name: Auto-merge
+      if: ${{ inputs.auto-merge == 'true' && github.event_name == 'pull_request' }}
+      shell: bash
+      env:
+        GH_TOKEN: ${{ inputs.github-token }}
+      run: |
+        gh pr merge ${{ github.event.pull_request.number }} \
+          --${{ inputs.merge-method }} \
+          --delete-branch
