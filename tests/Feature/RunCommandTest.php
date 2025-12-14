@@ -2,41 +2,73 @@
 
 declare(strict_types=1);
 
-use App\Commands\RunCommand;
+use App\Commands\CertifyCommand;
+use App\Commands\SecurityCommand;
+use App\Commands\SyntaxCommand;
+use App\Commands\TestsCommand;
 
-describe('RunCommand', function () {
-    it('has the correct signature', function () {
-        $command = new RunCommand();
+describe('Gate Commands', function () {
+    describe('TestsCommand', function () {
+        it('has the correct signature', function () {
+            $command = new TestsCommand();
+            expect($command->getName())->toBe('tests');
+        });
 
-        expect($command->getName())->toBe('run');
+        it('has coverage option with default of 80', function () {
+            $command = new TestsCommand();
+            $definition = $command->getDefinition();
+
+            expect($definition->hasOption('coverage'))->toBeTrue();
+            expect($definition->getOption('coverage')->getDefault())->toBe('80');
+        });
+
+        it('has token option', function () {
+            $command = new TestsCommand();
+            expect($command->getDefinition()->hasOption('token'))->toBeTrue();
+        });
     });
 
-    it('has coverage option with default of 100', function () {
-        $command = new RunCommand();
-        $definition = $command->getDefinition();
+    describe('SecurityCommand', function () {
+        it('has the correct signature', function () {
+            $command = new SecurityCommand();
+            expect($command->getName())->toBe('security');
+        });
 
-        expect($definition->hasOption('coverage'))->toBeTrue();
-        expect($definition->getOption('coverage')->getDefault())->toBe('100');
+        it('has token option', function () {
+            $command = new SecurityCommand();
+            expect($command->getDefinition()->hasOption('token'))->toBeTrue();
+        });
     });
 
-    it('has repo option', function () {
-        $command = new RunCommand();
-        $definition = $command->getDefinition();
+    describe('SyntaxCommand', function () {
+        it('has the correct signature', function () {
+            $command = new SyntaxCommand();
+            expect($command->getName())->toBe('syntax');
+        });
 
-        expect($definition->hasOption('repo'))->toBeTrue();
+        it('has token option', function () {
+            $command = new SyntaxCommand();
+            expect($command->getDefinition()->hasOption('token'))->toBeTrue();
+        });
     });
 
-    it('has pr option', function () {
-        $command = new RunCommand();
-        $definition = $command->getDefinition();
+    describe('CertifyCommand', function () {
+        it('has the correct signature', function () {
+            $command = new CertifyCommand();
+            expect($command->getName())->toBe('certify');
+        });
 
-        expect($definition->hasOption('pr'))->toBeTrue();
-    });
+        it('has coverage option with default of 80', function () {
+            $command = new CertifyCommand();
+            $definition = $command->getDefinition();
 
-    it('has token option for GitHub Checks API', function () {
-        $command = new RunCommand();
-        $definition = $command->getDefinition();
+            expect($definition->hasOption('coverage'))->toBeTrue();
+            expect($definition->getOption('coverage')->getDefault())->toBe('80');
+        });
 
-        expect($definition->hasOption('token'))->toBeTrue();
+        it('has token option', function () {
+            $command = new CertifyCommand();
+            expect($command->getDefinition()->hasOption('token'))->toBeTrue();
+        });
     });
 });
