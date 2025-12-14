@@ -33,7 +33,7 @@ final class SecurityCommand extends Command
         );
 
         $checksClient->reportCheck(
-            name: '🛡️ Security Audit',
+            name: 'Synapse Sentinel: Security Audit',
             passed: $result->passed,
             title: $result->message,
             summary: $result->message,

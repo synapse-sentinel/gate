@@ -56,13 +56,13 @@ final class CertifyCommand extends Command
             ? Verdict::approved('All checks passed')
             : Verdict::rejected('Certification failed', $failures);
 
-        // Report Sentinel Certification
+        // Report Sentinel Certification (last, after all checks)
         $title = $verdict->isApproved()
             ? 'All checks passed'
             : count($failures) . ' check(s) failed';
 
         $checksClient->reportCheck(
-            name: '🛡️ Sentinel Certification',
+            name: 'Synapse Sentinel: Certification',
             passed: $verdict->isApproved(),
             title: $title,
             summary: $verdict->toMarkdown(),
@@ -116,7 +116,7 @@ final class CertifyCommand extends Command
 
         // Report to GitHub Checks API
         $checksClient->reportCheck(
-            name: '🛡️ ' . $check->name(),
+            name: 'Synapse Sentinel: ' . $check->name(),
             passed: $result->passed,
             title: $result->message,
             summary: $result->message,
