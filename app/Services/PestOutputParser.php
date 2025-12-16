@@ -26,34 +26,8 @@ final class PestOutputParser
 
     public function isCoverageBelowThreshold(string $output): ?float
     {
-        // Pest format: "FAIL  Code coverage below expected  X %, currently  Y %."
+        // Pest format: "Code coverage below expected  X %, currently  Y %."
         return preg_match('/Code coverage below expected.*?currently\s+([\d.]+)\s*%/i', $output, $m) ? (float) $m[1] : null;
-    }
-
-    /**
-     * Parse file coverage and return files below threshold.
-     *
-     * @return array<string, float> File path => coverage percentage
-     */
-    public function parseFileCoverage(string $output, float $threshold = 100.0): array
-    {
-        $uncovered = [];
-
-        // Pest format: "  FileName/Path ............ XX.X%" (flexible formatting)
-        // Also handles: spacing variations, potential ANSI codes (though --colors=never should prevent)
-        preg_match_all('/^\s+([A-Za-z][A-Za-z0-9_\/\\\\]*)\s+\.{3,}\s*([\d.]+)\s*%/m', $output, $matches, PREG_SET_ORDER);
-
-        foreach ($matches as $match) {
-            $file = $match[1];
-            $coverage = (float) $match[2];
-
-            // Skip "Total" line and files meeting threshold
-            if ($file !== 'Total' && $coverage < $threshold) {
-                $uncovered[$file] = $coverage;
-            }
-        }
-
-        return $uncovered;
     }
 
     private function formatFailure(string $name, string $body): string
@@ -75,5 +49,36 @@ final class PestOutputParser
         }
 
         return '';
+    }
+
+    /**
+     * Parse file coverage from Pest output, returning files below threshold.
+     *
+     * @return array<string, float> file path => coverage percentage
+     */
+    public function parseFileCoverage(string $output, float $threshold): array
+    {
+        $belowThreshold = [];
+
+        // Match lines like: "  App/Services/Service1 .............. 80.0%"
+        // or "  App\Checks\TestRunner .................................. 95.5 %"
+        preg_match_all('/^\s+(\S+)\s+\.+\s*([\d.]+)\s*%$/m', $output, $matches, PREG_SET_ORDER);
+
+        foreach ($matches as $match) {
+            $name = $match[1];
+            // Skip Total line
+            if (strtolower($name) === 'total') {
+                continue;
+            }
+            $coverage = (float) $match[2];
+            if ($coverage < $threshold) {
+                $belowThreshold[$name] = $coverage;
+            }
+        }
+
+        // Sort by coverage ascending (worst first)
+        asort($belowThreshold);
+
+        return $belowThreshold;
     }
 }

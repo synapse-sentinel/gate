@@ -217,7 +217,7 @@ OUTPUT;
             $parser = new PestOutputParser();
             $output = 'Tests:  5 passed';
 
-            expect($parser->parseFileCoverage($output))->toBeEmpty();
+            expect($parser->parseFileCoverage($output, 100.0))->toBeEmpty();
         });
     });
 });

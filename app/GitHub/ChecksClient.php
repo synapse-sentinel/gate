@@ -15,11 +15,14 @@ final class ChecksClient
 
     private string $sha;
 
+    private ?int $prNumber;
+
     public function __construct(
         private readonly ?string $token = null,
         ?Client $client = null,
         ?string $repo = null,
         ?string $sha = null,
+        ?int $prNumber = null,
     ) {
         $this->client = $client ?? new Client([
             'base_uri' => 'https://api.github.com/',
@@ -32,6 +35,29 @@ final class ChecksClient
 
         $this->repo = $repo ?? (getenv('GITHUB_REPOSITORY') ?: '');
         $this->sha = $sha ?? (getenv('GITHUB_SHA') ?: '');
+        $this->prNumber = $prNumber ?? $this->extractPRNumber();
+    }
+
+    private function extractPRNumber(): ?int
+    {
+        // Try GITHUB_REF_NAME first (e.g., "123/merge" for PRs)
+        $refName = getenv('GITHUB_REF_NAME') ?: '';
+        if (preg_match('/^(\d+)\/merge$/', $refName, $matches)) {
+            return (int) $matches[1];
+        }
+
+        // Try GITHUB_REF (e.g., "refs/pull/123/merge")
+        $ref = getenv('GITHUB_REF') ?: '';
+        if (preg_match('/^refs\/pull\/(\d+)\//', $ref, $matches)) {
+            return (int) $matches[1];
+        }
+
+        return null;
+    }
+
+    public function getRepo(): string
+    {
+        return $this->repo;
     }
 
     public function isAvailable(): bool
@@ -126,6 +152,49 @@ final class ChecksClient
             return true;
         } catch (GuzzleException $e) {
             echo "::warning::ChecksClient error: {$e->getMessage()}\n";
+            return false;
+        }
+    }
+
+    /**
+     * Post a certification comment on a PR with badge code.
+     *
+     * @param  array<string, string>  $checkResults  Map of check name => result message
+     */
+    public function postCertificationComment(array $checkResults): bool
+    {
+        if (! $this->isAvailable() || $this->prNumber === null) {
+            return false;
+        }
+
+        $badgeUrl = "https://img.shields.io/github/actions/workflow/status/{$this->repo}/gate.yml?label=Sentinel%20Certified&style=flat-square";
+        $actionUrl = "https://github.com/{$this->repo}/actions/workflows/gate.yml";
+
+        $checksSection = '';
+        foreach ($checkResults as $name => $result) {
+            $checksSection .= "✅ **{$name}**: {$result}\n";
+        }
+
+        $body = <<<MARKDOWN
+## 🏆 Sentinel Certified
+
+{$checksSection}
+---
+
+**Add this badge to your README:**
+
+```markdown
+[![Sentinel Certified]({$badgeUrl})]({$actionUrl})
+```
+MARKDOWN;
+
+        try {
+            $this->client->post("repos/{$this->repo}/issues/{$this->prNumber}/comments", [
+                'json' => ['body' => $body],
+            ]);
+
+            return true;
+        } catch (GuzzleException) {
             return false;
         }
     }

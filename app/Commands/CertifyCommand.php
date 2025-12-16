@@ -65,9 +65,12 @@ final class CertifyCommand extends Command
         $stopOnFailure = $this->option('stop-on-failure');
         $failures = [];
         $failureRows = [];
+        $checkResults = [];
 
         foreach ($checks as $check) {
             $result = $this->runCheck($check, $workingDirectory, $checksClient);
+            $checkResults[$check->name()] = $result->message;
+
             if (! $result->passed) {
                 $failures[] = "[{$check->name()}] {$result->message}";
                 foreach ($result->details as $detail) {
@@ -96,6 +99,11 @@ final class CertifyCommand extends Command
             title: $title,
             summary: $verdict->toMarkdown(),
         );
+
+        // Post PR comment with badge on success
+        if ($verdict->isApproved()) {
+            $checksClient->postCertificationComment($checkResults);
+        }
 
         // Output verdict
         if ($verdict->isApproved()) {

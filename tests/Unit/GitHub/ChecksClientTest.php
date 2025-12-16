@@ -11,6 +11,47 @@ use GuzzleHttp\Exception\RequestException;
 use GuzzleHttp\Psr7\Request;
 
 describe('ChecksClient', function () {
+    describe('extractPRNumber', function () {
+        it('extracts PR number from GITHUB_REF_NAME', function () {
+            putenv('GITHUB_REF_NAME=42/merge');
+            putenv('GITHUB_REF=');
+
+            $mock = new MockHandler([new Response(201)]);
+            $httpClient = new Client(['handler' => HandlerStack::create($mock)]);
+
+            $client = new ChecksClient(
+                token: 'test-token',
+                client: $httpClient,
+                repo: 'owner/repo',
+                sha: 'abc123',
+            );
+
+            // The PR number should be extracted and comment should work
+            expect($client->postCertificationComment(['Test' => 'Pass']))->toBeTrue();
+
+            putenv('GITHUB_REF_NAME=');
+        });
+
+        it('extracts PR number from GITHUB_REF', function () {
+            putenv('GITHUB_REF_NAME=');
+            putenv('GITHUB_REF=refs/pull/99/merge');
+
+            $mock = new MockHandler([new Response(201)]);
+            $httpClient = new Client(['handler' => HandlerStack::create($mock)]);
+
+            $client = new ChecksClient(
+                token: 'test-token',
+                client: $httpClient,
+                repo: 'owner/repo',
+                sha: 'abc123',
+            );
+
+            expect($client->postCertificationComment(['Test' => 'Pass']))->toBeTrue();
+
+            putenv('GITHUB_REF=');
+        });
+    });
+
     describe('isAvailable', function () {
         it('returns true when all required values are present', function () {
             $client = new ChecksClient(
@@ -200,6 +241,76 @@ describe('ChecksClient', function () {
 
             expect($result)->toBeFalse();
             expect($output)->toContain('::warning::');
+        });
+    });
+
+    describe('getRepo', function () {
+        it('returns the repository string', function () {
+            $client = new ChecksClient(
+                token: 'test-token',
+                repo: 'owner/repo',
+                sha: 'abc123',
+            );
+
+            expect($client->getRepo())->toBe('owner/repo');
+        });
+    });
+
+    describe('postCertificationComment', function () {
+        it('returns false when not available', function () {
+            $client = new ChecksClient(token: null);
+
+            expect($client->postCertificationComment(['Test' => 'Passed']))->toBeFalse();
+        });
+
+        it('returns false when no PR number', function () {
+            $client = new ChecksClient(
+                token: 'test-token',
+                repo: 'owner/repo',
+                sha: 'abc123',
+                prNumber: null,
+            );
+
+            expect($client->postCertificationComment(['Test' => 'Passed']))->toBeFalse();
+        });
+
+        it('posts comment and returns true on success', function () {
+            $mock = new MockHandler([
+                new Response(201),
+            ]);
+            $handlerStack = HandlerStack::create($mock);
+            $httpClient = new Client(['handler' => $handlerStack]);
+
+            $client = new ChecksClient(
+                token: 'test-token',
+                client: $httpClient,
+                repo: 'owner/repo',
+                sha: 'abc123',
+                prNumber: 42,
+            );
+
+            expect($client->postCertificationComment([
+                'Tests & Coverage' => '10 tests, 100% coverage',
+                'Security Audit' => 'No vulnerabilities found',
+            ]))->toBeTrue();
+        });
+
+        it('returns false on API error', function () {
+            $mock = new MockHandler([
+                new RequestException('Error', new Request('POST', 'test')),
+            ]);
+            $handlerStack = HandlerStack::create($mock);
+            $httpClient = new Client(['handler' => $handlerStack]);
+
+            $client = new ChecksClient(
+                token: 'test-token',
+                client: $httpClient,
+                repo: 'owner/repo',
+                sha: 'abc123',
+                prNumber: 42,
+            );
+
+            expect($client->postCertificationComment(['Test' => 'Passed']))->toBeFalse();
         });
     });
 });
