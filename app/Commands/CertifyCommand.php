@@ -15,7 +15,6 @@ use LaravelZero\Framework\Commands\Command;
 
 use function Laravel\Prompts\error;
 use function Laravel\Prompts\info;
-use function Laravel\Prompts\spin;
 use function Laravel\Prompts\table;
 
 final class CertifyCommand extends Command
@@ -120,10 +119,7 @@ final class CertifyCommand extends Command
         string $workingDirectory,
         ChecksClient $checksClient,
     ): \App\Checks\CheckResult {
-        $result = spin(
-            fn () => $check->run($workingDirectory),
-            "Running {$check->name()}..."
-        );
+        $result = $check->run($workingDirectory);
 
         // Report to GitHub Checks API
         $checksClient->reportCheck(

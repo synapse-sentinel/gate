@@ -12,7 +12,6 @@ use LaravelZero\Framework\Commands\Command;
 
 use function Laravel\Prompts\error;
 use function Laravel\Prompts\info;
-use function Laravel\Prompts\spin;
 use function Laravel\Prompts\table;
 
 final class SyntaxCommand extends Command
@@ -35,10 +34,7 @@ final class SyntaxCommand extends Command
         $checksClient = $this->checksClient ?? new ChecksClient($token);
         $check = $this->check ?? new PestSyntaxValidator();
 
-        $result = spin(
-            fn () => $check->run(getcwd()),
-            'Validating test syntax...'
-        );
+        $result = $check->run(getcwd());
 
         $title = $result->passed
             ? 'All tests use describe/it'

@@ -13,7 +13,6 @@ use LaravelZero\Framework\Commands\Command;
 
 use function Laravel\Prompts\error;
 use function Laravel\Prompts\info;
-use function Laravel\Prompts\spin;
 use function Laravel\Prompts\table;
 
 final class TestsCommand extends Command
@@ -38,10 +37,7 @@ final class TestsCommand extends Command
         $checksClient = $this->checksClient ?? new ChecksClient($token);
         $check = $this->check ?? new TestRunner($threshold);
 
-        $result = spin(
-            fn () => $check->run(getcwd()),
-            'Running tests...'
-        );
+        $result = $check->run(getcwd());
 
         $checksClient->reportCheck(
             name: Branding::TESTS,

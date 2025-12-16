@@ -12,7 +12,6 @@ use LaravelZero\Framework\Commands\Command;
 
 use function Laravel\Prompts\error;
 use function Laravel\Prompts\info;
-use function Laravel\Prompts\spin;
 use function Laravel\Prompts\table;
 
 final class SecurityCommand extends Command
@@ -35,10 +34,7 @@ final class SecurityCommand extends Command
         $checksClient = $this->checksClient ?? new ChecksClient($token);
         $check = $this->check ?? new SecurityScanner();
 
-        $result = spin(
-            fn () => $check->run(getcwd()),
-            'Auditing dependencies...'
-        );
+        $result = $check->run(getcwd());
 
         $checksClient->reportCheck(
             name: Branding::SECURITY,
