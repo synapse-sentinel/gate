@@ -26,7 +26,8 @@ final class PestOutputParser
 
     public function isCoverageBelowThreshold(string $output): ?float
     {
-        return preg_match('/Code coverage below expected:\s*([\d.]+)%/', $output, $m) ? (float) $m[1] : null;
+        // Pest format: "Code coverage below expected  X %, currently  Y %."
+        return preg_match('/Code coverage below expected.*?currently\s+([\d.]+)\s*%/i', $output, $m) ? (float) $m[1] : null;
     }
 
     private function formatFailure(string $name, string $body): string
