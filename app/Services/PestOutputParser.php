@@ -39,8 +39,8 @@ final class PestOutputParser
     {
         $uncovered = [];
 
-        // Pest format: "  FileName/Path ............ XX.X%"
-        preg_match_all('/^\s{2}(\S+)\s+\.+\s+([\d.]+)%/m', $output, $matches, PREG_SET_ORDER);
+        // Pest format: "  FileName/Path ............ XX.X%" (flexible indentation)
+        preg_match_all('/^\s+(\S+)\s+\.+\s+([\d.]+)\s*%/m', $output, $matches, PREG_SET_ORDER);
 
         foreach ($matches as $match) {
             $file = $match[1];
