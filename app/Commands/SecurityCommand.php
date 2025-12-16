@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Commands;
 
 use App\Branding;
+use App\Checks\CheckInterface;
 use App\Checks\SecurityScanner;
 use App\GitHub\ChecksClient;
 use LaravelZero\Framework\Commands\Command;
@@ -21,12 +22,18 @@ final class SecurityCommand extends Command
 
     protected $description = 'Run security audit on dependencies';
 
+    public function __construct(
+        private ?CheckInterface $check = null,
+        private ?ChecksClient $checksClient = null,
+    ) {
+        parent::__construct();
+    }
+
     public function handle(): int
     {
         $token = $this->option('token') ?: getenv('GITHUB_TOKEN') ?: null;
-        $checksClient = new ChecksClient($token);
-
-        $check = new SecurityScanner();
+        $checksClient = $this->checksClient ?? new ChecksClient($token);
+        $check = $this->check ?? new SecurityScanner();
 
         $result = spin(
             fn () => $check->run(getcwd()),
@@ -41,11 +48,12 @@ final class SecurityCommand extends Command
         );
 
         if ($result->passed) {
-            info("Security Audit ✓");
+            info('Security Audit ✓');
+
             return self::SUCCESS;
         }
 
-        error("Security Audit ✗");
+        error('Security Audit ✗');
         error($result->message);
 
         if (! empty($result->details)) {

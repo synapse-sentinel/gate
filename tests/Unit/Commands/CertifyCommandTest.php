@@ -1,0 +1,202 @@
+<?php
+
+declare(strict_types=1);
+
+use App\Checks\CheckInterface;
+use App\Checks\CheckResult;
+use App\Commands\CertifyCommand;
+use App\GitHub\ChecksClient;
+use GuzzleHttp\Client;
+use GuzzleHttp\Handler\MockHandler;
+use GuzzleHttp\HandlerStack;
+use GuzzleHttp\Psr7\Response;
+
+describe('CertifyCommand', function () {
+    describe('handle', function () {
+        it('returns success when all checks pass', function () {
+            $passingCheck = Mockery::mock(CheckInterface::class);
+            $passingCheck->shouldReceive('name')->andReturn('Test Check');
+            $passingCheck->shouldReceive('run')
+                ->once()
+                ->andReturn(CheckResult::pass('All good'));
+
+            $mock = new MockHandler([
+                new Response(201), // Individual check
+                new Response(201), // Certification check
+            ]);
+            $httpClient = new Client(['handler' => HandlerStack::create($mock)]);
+            $checksClient = new ChecksClient('token', $httpClient, 'owner/repo', 'sha123');
+
+            app()->singleton(CertifyCommand::class, fn () => new CertifyCommand([$passingCheck], $checksClient));
+
+            $this->artisan('certify')
+                ->assertSuccessful();
+        });
+
+        it('returns failure when any check fails', function () {
+            $passingCheck = Mockery::mock(CheckInterface::class);
+            $passingCheck->shouldReceive('name')->andReturn('Tests');
+            $passingCheck->shouldReceive('run')
+                ->once()
+                ->andReturn(CheckResult::pass('Tests passed'));
+
+            $failingCheck = Mockery::mock(CheckInterface::class);
+            $failingCheck->shouldReceive('name')->andReturn('Security');
+            $failingCheck->shouldReceive('run')
+                ->once()
+                ->andReturn(CheckResult::fail('Vulnerabilities found', ['CVE-2024-0001']));
+
+            $mock = new MockHandler([
+                new Response(201), // First check
+                new Response(201), // Second check
+                new Response(201), // Certification check
+            ]);
+            $httpClient = new Client(['handler' => HandlerStack::create($mock)]);
+            $checksClient = new ChecksClient('token', $httpClient, 'owner/repo', 'sha123');
+
+            app()->singleton(CertifyCommand::class, fn () => new CertifyCommand([$passingCheck, $failingCheck], $checksClient));
+
+            $this->artisan('certify')
+                ->assertFailed();
+        });
+
+        it('displays failure table when checks fail', function () {
+            $failingCheck = Mockery::mock(CheckInterface::class);
+            $failingCheck->shouldReceive('name')->andReturn('Tests');
+            $failingCheck->shouldReceive('run')
+                ->once()
+                ->andReturn(CheckResult::fail('2 tests failed', ['TestA failed', 'TestB failed']));
+
+            $mock = new MockHandler([
+                new Response(201),
+                new Response(201),
+            ]);
+            $httpClient = new Client(['handler' => HandlerStack::create($mock)]);
+            $checksClient = new ChecksClient('token', $httpClient, 'owner/repo', 'sha123');
+
+            app()->singleton(CertifyCommand::class, fn () => new CertifyCommand([$failingCheck], $checksClient));
+
+            $this->artisan('certify')
+                ->assertFailed();
+        });
+
+        it('writes to GITHUB_STEP_SUMMARY when available', function () {
+            $tmpFile = sys_get_temp_dir().'/gate_test_summary_'.uniqid();
+
+            $passingCheck = Mockery::mock(CheckInterface::class);
+            $passingCheck->shouldReceive('name')->andReturn('Test');
+            $passingCheck->shouldReceive('run')
+                ->once()
+                ->andReturn(CheckResult::pass('OK'));
+
+            $mock = new MockHandler([new Response(201), new Response(201)]);
+            $httpClient = new Client(['handler' => HandlerStack::create($mock)]);
+            $checksClient = new ChecksClient('token', $httpClient, 'owner/repo', 'sha123');
+
+            putenv("GITHUB_STEP_SUMMARY={$tmpFile}");
+
+            app()->singleton(CertifyCommand::class, fn () => new CertifyCommand([$passingCheck], $checksClient));
+
+            $this->artisan('certify')
+                ->assertSuccessful();
+
+            putenv('GITHUB_STEP_SUMMARY'); // Clear
+
+            expect(file_exists($tmpFile))->toBeTrue();
+            expect(file_get_contents($tmpFile))->toContain('Approved');
+
+            @unlink($tmpFile);
+        });
+
+        it('writes to GITHUB_OUTPUT when available', function () {
+            $tmpFile = sys_get_temp_dir().'/gate_test_output_'.uniqid();
+
+            $passingCheck = Mockery::mock(CheckInterface::class);
+            $passingCheck->shouldReceive('name')->andReturn('Test');
+            $passingCheck->shouldReceive('run')
+                ->once()
+                ->andReturn(CheckResult::pass('OK'));
+
+            $mock = new MockHandler([new Response(201), new Response(201)]);
+            $httpClient = new Client(['handler' => HandlerStack::create($mock)]);
+            $checksClient = new ChecksClient('token', $httpClient, 'owner/repo', 'sha123');
+
+            putenv("GITHUB_OUTPUT={$tmpFile}");
+
+            app()->singleton(CertifyCommand::class, fn () => new CertifyCommand([$passingCheck], $checksClient));
+
+            $this->artisan('certify')
+                ->assertSuccessful();
+
+            putenv('GITHUB_OUTPUT'); // Clear
+
+            expect(file_exists($tmpFile))->toBeTrue();
+            $content = file_get_contents($tmpFile);
+            expect($content)->toContain('verdict=approved');
+            expect($content)->toContain('reason=');
+
+            @unlink($tmpFile);
+        });
+
+        it('handles multiple failed checks', function () {
+            $failingCheck1 = Mockery::mock(CheckInterface::class);
+            $failingCheck1->shouldReceive('name')->andReturn('Tests');
+            $failingCheck1->shouldReceive('run')
+                ->once()
+                ->andReturn(CheckResult::fail('Tests failed', ['Test error']));
+
+            $failingCheck2 = Mockery::mock(CheckInterface::class);
+            $failingCheck2->shouldReceive('name')->andReturn('Security');
+            $failingCheck2->shouldReceive('run')
+                ->once()
+                ->andReturn(CheckResult::fail('Security failed', ['CVE found']));
+
+            $mock = new MockHandler([
+                new Response(201),
+                new Response(201),
+                new Response(201),
+            ]);
+            $httpClient = new Client(['handler' => HandlerStack::create($mock)]);
+            $checksClient = new ChecksClient('token', $httpClient, 'owner/repo', 'sha123');
+
+            app()->singleton(CertifyCommand::class, fn () => new CertifyCommand([$failingCheck1, $failingCheck2], $checksClient));
+
+            $this->artisan('certify')
+                ->assertFailed();
+        });
+
+        it('accepts coverage option', function () {
+            $passingCheck = Mockery::mock(CheckInterface::class);
+            $passingCheck->shouldReceive('name')->andReturn('Test');
+            $passingCheck->shouldReceive('run')
+                ->once()
+                ->andReturn(CheckResult::pass('OK'));
+
+            $mock = new MockHandler([new Response(201), new Response(201)]);
+            $httpClient = new Client(['handler' => HandlerStack::create($mock)]);
+            $checksClient = new ChecksClient('token', $httpClient, 'owner/repo', 'sha123');
+
+            app()->singleton(CertifyCommand::class, fn () => new CertifyCommand([$passingCheck], $checksClient));
+
+            $this->artisan('certify', ['--coverage' => '90'])
+                ->assertSuccessful();
+        });
+
+        it('uses token from option', function () {
+            $passingCheck = Mockery::mock(CheckInterface::class);
+            $passingCheck->shouldReceive('name')->andReturn('Test');
+            $passingCheck->shouldReceive('run')
+                ->once()
+                ->andReturn(CheckResult::pass('OK'));
+
+            $mock = new MockHandler([new Response(201), new Response(201)]);
+            $httpClient = new Client(['handler' => HandlerStack::create($mock)]);
+            $checksClient = new ChecksClient('custom-token', $httpClient, 'owner/repo', 'sha123');
+
+            app()->singleton(CertifyCommand::class, fn () => new CertifyCommand([$passingCheck], $checksClient));
+
+            $this->artisan('certify', ['--token' => 'custom-token'])
+                ->assertSuccessful();
+        });
+    });
+});

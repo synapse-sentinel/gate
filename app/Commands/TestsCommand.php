@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace App\Commands;
 
 use App\Branding;
+use App\Checks\CheckInterface;
+use App\Checks\CheckResult;
 use App\Checks\TestRunner;
 use App\GitHub\ChecksClient;
 use LaravelZero\Framework\Commands\Command;
@@ -22,13 +24,19 @@ final class TestsCommand extends Command
 
     protected $description = 'Run tests with coverage check';
 
+    public function __construct(
+        private ?CheckInterface $check = null,
+        private ?ChecksClient $checksClient = null,
+    ) {
+        parent::__construct();
+    }
+
     public function handle(): int
     {
         $threshold = (int) $this->option('coverage');
         $token = $this->option('token') ?: getenv('GITHUB_TOKEN') ?: null;
-        $checksClient = new ChecksClient($token);
-
-        $check = new TestRunner($threshold);
+        $checksClient = $this->checksClient ?? new ChecksClient($token);
+        $check = $this->check ?? new TestRunner($threshold);
 
         $result = spin(
             fn () => $check->run(getcwd()),
@@ -44,10 +52,11 @@ final class TestsCommand extends Command
 
         if ($result->passed) {
             info("Tests & Coverage ✓ {$result->message}");
+
             return self::SUCCESS;
         }
 
-        error("Tests & Coverage ✗");
+        error('Tests & Coverage ✗');
         error($result->message);
 
         if (! empty($result->details)) {
@@ -60,16 +69,17 @@ final class TestsCommand extends Command
         return self::FAILURE;
     }
 
-    private function formatSummary($result): string
+    private function formatSummary(CheckResult $result): string
     {
         if ($result->passed) {
             return $result->message;
         }
 
-        $summary = $result->message . "\n\n";
+        $summary = $result->message."\n\n";
         foreach ($result->details as $detail) {
             $summary .= "- {$detail}\n";
         }
+
         return $summary;
     }
 }

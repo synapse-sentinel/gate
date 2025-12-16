@@ -17,8 +17,11 @@ final class ChecksClient
 
     public function __construct(
         private readonly ?string $token = null,
+        ?Client $client = null,
+        ?string $repo = null,
+        ?string $sha = null,
     ) {
-        $this->client = new Client([
+        $this->client = $client ?? new Client([
             'base_uri' => 'https://api.github.com/',
             'headers' => [
                 'Accept' => 'application/vnd.github+json',
@@ -27,8 +30,8 @@ final class ChecksClient
             ],
         ]);
 
-        $this->repo = getenv('GITHUB_REPOSITORY') ?: '';
-        $this->sha = getenv('GITHUB_SHA') ?: '';
+        $this->repo = $repo ?? (getenv('GITHUB_REPOSITORY') ?: '');
+        $this->sha = $sha ?? (getenv('GITHUB_SHA') ?: '');
     }
 
     public function isAvailable(): bool

@@ -23,4 +23,4 @@ jobs:
         run: composer install --prefer-dist --no-progress
 
       - name: Run Gate on itself
-        run: php gate run --coverage=50
+        run: php gate certify --coverage=100

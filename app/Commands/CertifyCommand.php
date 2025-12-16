@@ -26,14 +26,24 @@ final class CertifyCommand extends Command
 
     protected $description = 'Run all checks and issue Sentinel Certification';
 
+    /**
+     * @param  array<CheckInterface>|null  $checks
+     */
+    public function __construct(
+        private ?array $checks = null,
+        private ?ChecksClient $checksClient = null,
+    ) {
+        parent::__construct();
+    }
+
     public function handle(): int
     {
         $coverageThreshold = (int) $this->option('coverage');
         $token = $this->option('token') ?: getenv('GITHUB_TOKEN') ?: null;
-        $checksClient = new ChecksClient($token);
+        $checksClient = $this->checksClient ?? new ChecksClient($token);
         $workingDirectory = getcwd();
 
-        $checks = [
+        $checks = $this->checks ?? [
             new TestRunner($coverageThreshold),
             new SecurityScanner(),
             new PestSyntaxValidator(),

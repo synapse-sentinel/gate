@@ -41,6 +41,20 @@ PHP);
         rmdir($tempDir);
     });
 
+    it('passes when no tests directory exists', function () {
+        $validator = new PestSyntaxValidator();
+
+        $tempDir = sys_get_temp_dir().'/gate-test-'.uniqid();
+        mkdir($tempDir);
+
+        $result = $validator->run($tempDir);
+
+        expect($result->passed)->toBeTrue();
+        expect($result->message)->toBe('No tests directory found');
+
+        rmdir($tempDir);
+    });
+
     it('fails when test files use test() function', function () {
         $validator = new PestSyntaxValidator();
 

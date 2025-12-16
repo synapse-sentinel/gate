@@ -4,12 +4,16 @@ declare(strict_types=1);
 
 namespace App\Checks;
 
-use Symfony\Component\Process\Process;
+use App\Contracts\ProcessRunner;
+use App\Services\PestOutputParser;
+use App\Services\SymfonyProcessRunner;
 
 final class TestRunner implements CheckInterface
 {
     public function __construct(
         private readonly int $coverageThreshold = 100,
+        private readonly PestOutputParser $parser = new PestOutputParser(),
+        private readonly ProcessRunner $processRunner = new SymfonyProcessRunner(),
     ) {}
 
     public function name(): string
@@ -19,84 +23,49 @@ final class TestRunner implements CheckInterface
 
     public function run(string $workingDirectory): CheckResult
     {
-        $process = new Process(
+        $result = $this->processRunner->run(
             ['vendor/bin/pest', '--coverage', "--min={$this->coverageThreshold}", '--colors=never'],
             $workingDirectory,
             timeout: 300,
         );
 
-        $process->run();
-        $output = $process->getOutput() . $process->getErrorOutput();
-
-        if ($process->isSuccessful()) {
-            $stats = $this->parseStats($output);
-            return CheckResult::pass($stats);
+        if ($result->successful) {
+            return CheckResult::pass($this->parseStats($result->output));
         }
 
         return CheckResult::fail(
-            $this->parseFailureMessage($output),
-            $this->parseFailureDetails($output),
+            $this->parseFailureMessage($result->output),
+            $this->parseFailureDetails($result->output),
         );
     }
 
     private function parseStats(string $output): string
     {
-        // Extract test count and coverage
-        if (preg_match('/Tests:\s*(\d+)\s*passed/', $output, $tests)) {
-            $testCount = $tests[1];
-        } else {
-            $testCount = '?';
-        }
+        $tests = $this->parser->parseTestCount($output);
+        $coverage = $this->parser->parseCoverage($output);
 
-        if (preg_match('/Total:\s*([\d.]+)%/', $output, $coverage)) {
-            return "{$testCount} tests, {$coverage[1]}% coverage";
-        }
-
-        return "{$testCount} tests passed";
+        return $coverage !== null
+            ? "{$tests} tests, {$coverage}% coverage"
+            : "{$tests} tests passed";
     }
 
     private function parseFailureMessage(string $output): string
     {
-        // Check if it's a coverage failure
-        if (preg_match('/Code coverage below expected:\s*([\d.]+)%/', $output, $match)) {
-            return "Coverage {$match[1]}% below {$this->coverageThreshold}% threshold";
+        if ($actual = $this->parser->isCoverageBelowThreshold($output)) {
+            return "Coverage {$actual}% below {$this->coverageThreshold}% threshold";
         }
 
-        // Count failed tests
-        if (preg_match('/Tests:\s*\d+\s*passed,\s*(\d+)\s*failed/', $output, $match)) {
-            return "{$match[1]} test(s) failed";
-        }
+        $failures = $this->parser->parseFailures($output);
 
-        if (preg_match('/(\d+)\s*failed/', $output, $match)) {
-            return "{$match[1]} test(s) failed";
-        }
-
-        return 'Tests failed';
+        return count($failures) > 0 ? count($failures).' test(s) failed' : 'Tests failed';
     }
 
     private function parseFailureDetails(string $output): array
     {
-        $details = [];
+        $details = array_slice($this->parser->parseFailures($output), 0, 10);
 
-        // Split output into lines and find failures
-        $lines = explode("\n", $output);
-        foreach ($lines as $line) {
-            // Look for failed test markers: ⨯ or FAIL
-            if (preg_match('/[⨯✗]\s*(.+?→.+?)(?:\s+[\d.]+s)?$/u', trim($line), $match)) {
-                $details[] = trim($match[1]);
-            }
-        }
-
-        // Limit to 5 failures
-        $details = array_slice($details, 0, 5);
-
-        // Add coverage info if below threshold
-        if (preg_match('/Code coverage below expected:\s*([\d.]+)%/', $output, $match)) {
-            $details[] = "Coverage: {$match[1]}% (need {$this->coverageThreshold}%)";
-        } elseif (preg_match('/Total:\s*([\d.]+)%/', $output, $match)) {
-            if ((float) $match[1] < $this->coverageThreshold) {
-                $details[] = "Coverage: {$match[1]}% (need {$this->coverageThreshold}%)";
-            }
+        if ($actual = $this->parser->isCoverageBelowThreshold($output)) {
+            $details[] = "Coverage: {$actual}% (threshold: {$this->coverageThreshold}%)";
         }
 
         return $details;
