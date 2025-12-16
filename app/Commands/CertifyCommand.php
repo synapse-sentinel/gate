@@ -39,7 +39,16 @@ final class CertifyCommand extends Command
     public function handle(): int
     {
         $coverageThreshold = (int) $this->option('coverage');
-        $token = $this->option('token') ?: getenv('GITHUB_TOKEN') ?: null;
+        $optionToken = $this->option('token');
+        $envToken = getenv('GITHUB_TOKEN');
+        $token = $optionToken ?: $envToken ?: null;
+
+        // Debug: show what we're receiving (masked)
+        $optLen = $optionToken ? strlen($optionToken) : 0;
+        $envLen = $envToken ? strlen($envToken) : 0;
+        echo "::debug::token from --option: length={$optLen}, empty=" . (empty($optionToken) ? 'yes' : 'no') . "\n";
+        echo "::debug::token from env: length={$envLen}, empty=" . (empty($envToken) ? 'yes' : 'no') . "\n";
+
         $checksClient = $this->checksClient ?? new ChecksClient($token);
         $workingDirectory = getcwd();
 
