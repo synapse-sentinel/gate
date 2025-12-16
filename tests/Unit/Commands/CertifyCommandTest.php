@@ -11,6 +11,15 @@ use GuzzleHttp\Handler\MockHandler;
 use GuzzleHttp\HandlerStack;
 use GuzzleHttp\Psr7\Response;
 
+beforeEach(function () {
+    // Helper to create a command with mocks
+    $this->createCommand = function (array $checks, ChecksClient $checksClient) {
+        $command = new CertifyCommand();
+        $command->withMocks($checks, $checksClient);
+        app()->singleton(CertifyCommand::class, fn () => $command);
+    };
+});
+
 describe('CertifyCommand', function () {
     describe('handle', function () {
         it('returns success when all checks pass', function () {
@@ -27,7 +36,7 @@ describe('CertifyCommand', function () {
             $httpClient = new Client(['handler' => HandlerStack::create($mock)]);
             $checksClient = new ChecksClient('token', $httpClient, 'owner/repo', 'sha123');
 
-            app()->singleton(CertifyCommand::class, fn () => new CertifyCommand([$passingCheck], $checksClient));
+            ($this->createCommand)([$passingCheck], $checksClient);
 
             $this->artisan('certify')
                 ->assertSuccessful();
@@ -54,7 +63,7 @@ describe('CertifyCommand', function () {
             $httpClient = new Client(['handler' => HandlerStack::create($mock)]);
             $checksClient = new ChecksClient('token', $httpClient, 'owner/repo', 'sha123');
 
-            app()->singleton(CertifyCommand::class, fn () => new CertifyCommand([$passingCheck, $failingCheck], $checksClient));
+            ($this->createCommand)([$passingCheck, $failingCheck], $checksClient);
 
             $this->artisan('certify')
                 ->assertFailed();
@@ -74,7 +83,7 @@ describe('CertifyCommand', function () {
             $httpClient = new Client(['handler' => HandlerStack::create($mock)]);
             $checksClient = new ChecksClient('token', $httpClient, 'owner/repo', 'sha123');
 
-            app()->singleton(CertifyCommand::class, fn () => new CertifyCommand([$failingCheck], $checksClient));
+            ($this->createCommand)([$failingCheck], $checksClient);
 
             $this->artisan('certify')
                 ->assertFailed();
@@ -95,7 +104,7 @@ describe('CertifyCommand', function () {
 
             putenv("GITHUB_STEP_SUMMARY={$tmpFile}");
 
-            app()->singleton(CertifyCommand::class, fn () => new CertifyCommand([$passingCheck], $checksClient));
+            ($this->createCommand)([$passingCheck], $checksClient);
 
             $this->artisan('certify')
                 ->assertSuccessful();
@@ -123,7 +132,7 @@ describe('CertifyCommand', function () {
 
             putenv("GITHUB_OUTPUT={$tmpFile}");
 
-            app()->singleton(CertifyCommand::class, fn () => new CertifyCommand([$passingCheck], $checksClient));
+            ($this->createCommand)([$passingCheck], $checksClient);
 
             $this->artisan('certify')
                 ->assertSuccessful();
@@ -159,7 +168,7 @@ describe('CertifyCommand', function () {
             $httpClient = new Client(['handler' => HandlerStack::create($mock)]);
             $checksClient = new ChecksClient('token', $httpClient, 'owner/repo', 'sha123');
 
-            app()->singleton(CertifyCommand::class, fn () => new CertifyCommand([$failingCheck1, $failingCheck2], $checksClient));
+            ($this->createCommand)([$failingCheck1, $failingCheck2], $checksClient);
 
             $this->artisan('certify')
                 ->assertFailed();
@@ -176,7 +185,7 @@ describe('CertifyCommand', function () {
             $httpClient = new Client(['handler' => HandlerStack::create($mock)]);
             $checksClient = new ChecksClient('token', $httpClient, 'owner/repo', 'sha123');
 
-            app()->singleton(CertifyCommand::class, fn () => new CertifyCommand([$passingCheck], $checksClient));
+            ($this->createCommand)([$passingCheck], $checksClient);
 
             $this->artisan('certify', ['--coverage' => '90'])
                 ->assertSuccessful();
@@ -193,7 +202,7 @@ describe('CertifyCommand', function () {
             $httpClient = new Client(['handler' => HandlerStack::create($mock)]);
             $checksClient = new ChecksClient('custom-token', $httpClient, 'owner/repo', 'sha123');
 
-            app()->singleton(CertifyCommand::class, fn () => new CertifyCommand([$passingCheck], $checksClient));
+            ($this->createCommand)([$passingCheck], $checksClient);
 
             $this->artisan('certify', ['--token' => 'custom-token'])
                 ->assertSuccessful();
@@ -217,7 +226,7 @@ describe('CertifyCommand', function () {
             $httpClient = new Client(['handler' => HandlerStack::create($mock)]);
             $checksClient = new ChecksClient('token', $httpClient, 'owner/repo', 'sha123');
 
-            app()->singleton(CertifyCommand::class, fn () => new CertifyCommand([$failingCheck, $neverRunCheck], $checksClient));
+            ($this->createCommand)([$failingCheck, $neverRunCheck], $checksClient);
 
             $this->artisan('certify', ['--stop-on-failure' => true])
                 ->assertFailed();
@@ -244,7 +253,7 @@ describe('CertifyCommand', function () {
             $httpClient = new Client(['handler' => HandlerStack::create($mock)]);
             $checksClient = new ChecksClient('token', $httpClient, 'owner/repo', 'sha123');
 
-            app()->singleton(CertifyCommand::class, fn () => new CertifyCommand([$failingCheck, $secondCheck], $checksClient));
+            ($this->createCommand)([$failingCheck, $secondCheck], $checksClient);
 
             $this->artisan('certify')
                 ->assertFailed();

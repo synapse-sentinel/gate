@@ -26,14 +26,24 @@ final class CertifyCommand extends Command
 
     protected $description = 'Run all checks and issue Sentinel Certification';
 
-    /**
-     * @param  array<CheckInterface>|null  $checks
-     */
-    public function __construct(
-        private ?array $checks = null,
-        private ?ChecksClient $checksClient = null,
-    ) {
+    /** @var array<CheckInterface>|null For testing */
+    private ?array $checks = null;
+
+    /** @var ChecksClient|null For testing */
+    private ?ChecksClient $checksClient = null;
+
+    public function __construct()
+    {
         parent::__construct();
+    }
+
+    /** @internal For testing only */
+    public function withMocks(?array $checks = null, ?ChecksClient $checksClient = null): self
+    {
+        $this->checks = $checks;
+        $this->checksClient = $checksClient;
+
+        return $this;
     }
 
     public function handle(): int
@@ -42,11 +52,6 @@ final class CertifyCommand extends Command
         $optionToken = $this->option('token');
         $envToken = getenv('GITHUB_TOKEN');
         $token = $optionToken ?: $envToken ?: null;
-
-        // Debug: show what we're receiving (lengths only, not values)
-        $optLen = $optionToken ? strlen($optionToken) : 0;
-        $envLen = $envToken ? strlen($envToken) : 0;
-        echo "::notice::Token debug - option length: {$optLen}, env length: {$envLen}\n";
 
         $checksClient = $this->checksClient ?? new ChecksClient($token);
         $workingDirectory = getcwd();

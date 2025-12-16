@@ -23,11 +23,22 @@ final class TestsCommand extends Command
 
     protected $description = 'Run tests with coverage check';
 
-    public function __construct(
-        private ?CheckInterface $check = null,
-        private ?ChecksClient $checksClient = null,
-    ) {
+    private ?CheckInterface $check = null;
+
+    private ?ChecksClient $checksClient = null;
+
+    public function __construct()
+    {
         parent::__construct();
+    }
+
+    /** @internal For testing only */
+    public function withMocks(?CheckInterface $check = null, ?ChecksClient $checksClient = null): self
+    {
+        $this->check = $check;
+        $this->checksClient = $checksClient;
+
+        return $this;
     }
 
     public function handle(): int

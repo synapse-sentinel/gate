@@ -11,6 +11,14 @@ use GuzzleHttp\Handler\MockHandler;
 use GuzzleHttp\HandlerStack;
 use GuzzleHttp\Psr7\Response;
 
+beforeEach(function () {
+    $this->createCommand = function (CheckInterface $check, ChecksClient $checksClient) {
+        $command = new SecurityCommand();
+        $command->withMocks($check, $checksClient);
+        app()->singleton(SecurityCommand::class, fn () => $command);
+    };
+});
+
 describe('SecurityCommand', function () {
     describe('handle', function () {
         it('returns success when security audit passes', function () {
@@ -23,7 +31,7 @@ describe('SecurityCommand', function () {
             $httpClient = new Client(['handler' => HandlerStack::create($mock)]);
             $checksClient = new ChecksClient('token', $httpClient, 'owner/repo', 'sha123');
 
-            app()->singleton(SecurityCommand::class, fn () => new SecurityCommand($check, $checksClient));
+            ($this->createCommand)($check, $checksClient);
 
             $this->artisan('security')
                 ->assertSuccessful();
@@ -43,7 +51,7 @@ describe('SecurityCommand', function () {
             $httpClient = new Client(['handler' => HandlerStack::create($mock)]);
             $checksClient = new ChecksClient('token', $httpClient, 'owner/repo', 'sha123');
 
-            app()->singleton(SecurityCommand::class, fn () => new SecurityCommand($check, $checksClient));
+            ($this->createCommand)($check, $checksClient);
 
             $this->artisan('security')
                 ->assertFailed();
@@ -59,7 +67,7 @@ describe('SecurityCommand', function () {
             $httpClient = new Client(['handler' => HandlerStack::create($mock)]);
             $checksClient = new ChecksClient('token', $httpClient, 'owner/repo', 'sha123');
 
-            app()->singleton(SecurityCommand::class, fn () => new SecurityCommand($check, $checksClient));
+            ($this->createCommand)($check, $checksClient);
 
             $this->artisan('security')
                 ->assertFailed();
@@ -75,7 +83,7 @@ describe('SecurityCommand', function () {
             $httpClient = new Client(['handler' => HandlerStack::create($mock)]);
             $checksClient = new ChecksClient('custom-token', $httpClient, 'owner/repo', 'sha123');
 
-            app()->singleton(SecurityCommand::class, fn () => new SecurityCommand($check, $checksClient));
+            ($this->createCommand)($check, $checksClient);
 
             $this->artisan('security', ['--token' => 'custom-token'])
                 ->assertSuccessful();

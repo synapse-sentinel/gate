@@ -11,6 +11,14 @@ use GuzzleHttp\Handler\MockHandler;
 use GuzzleHttp\HandlerStack;
 use GuzzleHttp\Psr7\Response;
 
+beforeEach(function () {
+    $this->createCommand = function (CheckInterface $check, ChecksClient $checksClient) {
+        $command = new SyntaxCommand();
+        $command->withMocks($check, $checksClient);
+        app()->singleton(SyntaxCommand::class, fn () => $command);
+    };
+});
+
 describe('SyntaxCommand', function () {
     describe('handle', function () {
         it('returns success when all tests use describe/it', function () {
@@ -23,7 +31,7 @@ describe('SyntaxCommand', function () {
             $httpClient = new Client(['handler' => HandlerStack::create($mock)]);
             $checksClient = new ChecksClient('token', $httpClient, 'owner/repo', 'sha123');
 
-            app()->singleton(SyntaxCommand::class, fn () => new SyntaxCommand($check, $checksClient));
+            ($this->createCommand)($check, $checksClient);
 
             $this->artisan('syntax')
                 ->assertSuccessful();
@@ -42,7 +50,7 @@ describe('SyntaxCommand', function () {
             $httpClient = new Client(['handler' => HandlerStack::create($mock)]);
             $checksClient = new ChecksClient('token', $httpClient, 'owner/repo', 'sha123');
 
-            app()->singleton(SyntaxCommand::class, fn () => new SyntaxCommand($check, $checksClient));
+            ($this->createCommand)($check, $checksClient);
 
             $this->artisan('syntax')
                 ->assertFailed();
@@ -58,7 +66,7 @@ describe('SyntaxCommand', function () {
             $httpClient = new Client(['handler' => HandlerStack::create($mock)]);
             $checksClient = new ChecksClient('token', $httpClient, 'owner/repo', 'sha123');
 
-            app()->singleton(SyntaxCommand::class, fn () => new SyntaxCommand($check, $checksClient));
+            ($this->createCommand)($check, $checksClient);
 
             $this->artisan('syntax')
                 ->assertFailed();
@@ -74,7 +82,7 @@ describe('SyntaxCommand', function () {
             $httpClient = new Client(['handler' => HandlerStack::create($mock)]);
             $checksClient = new ChecksClient('custom-token', $httpClient, 'owner/repo', 'sha123');
 
-            app()->singleton(SyntaxCommand::class, fn () => new SyntaxCommand($check, $checksClient));
+            ($this->createCommand)($check, $checksClient);
 
             $this->artisan('syntax', ['--token' => 'custom-token'])
                 ->assertSuccessful();

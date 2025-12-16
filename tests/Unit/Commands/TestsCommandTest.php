@@ -11,6 +11,14 @@ use GuzzleHttp\Handler\MockHandler;
 use GuzzleHttp\HandlerStack;
 use GuzzleHttp\Psr7\Response;
 
+beforeEach(function () {
+    $this->createCommand = function (CheckInterface $check, ChecksClient $checksClient) {
+        $command = new TestsCommand();
+        $command->withMocks($check, $checksClient);
+        app()->singleton(TestsCommand::class, fn () => $command);
+    };
+});
+
 describe('TestsCommand', function () {
     describe('handle', function () {
         it('returns success when tests pass', function () {
@@ -23,7 +31,7 @@ describe('TestsCommand', function () {
             $httpClient = new Client(['handler' => HandlerStack::create($mock)]);
             $checksClient = new ChecksClient('token', $httpClient, 'owner/repo', 'sha123');
 
-            app()->singleton(TestsCommand::class, fn () => new TestsCommand($check, $checksClient));
+            ($this->createCommand)($check, $checksClient);
 
             $this->artisan('tests')
                 ->assertSuccessful();
@@ -39,7 +47,7 @@ describe('TestsCommand', function () {
             $httpClient = new Client(['handler' => HandlerStack::create($mock)]);
             $checksClient = new ChecksClient('token', $httpClient, 'owner/repo', 'sha123');
 
-            app()->singleton(TestsCommand::class, fn () => new TestsCommand($check, $checksClient));
+            ($this->createCommand)($check, $checksClient);
 
             $this->artisan('tests')
                 ->assertFailed();
@@ -55,7 +63,7 @@ describe('TestsCommand', function () {
             $httpClient = new Client(['handler' => HandlerStack::create($mock)]);
             $checksClient = new ChecksClient('token', $httpClient, 'owner/repo', 'sha123');
 
-            app()->singleton(TestsCommand::class, fn () => new TestsCommand($check, $checksClient));
+            ($this->createCommand)($check, $checksClient);
 
             $this->artisan('tests')
                 ->assertFailed();
@@ -71,7 +79,7 @@ describe('TestsCommand', function () {
             $httpClient = new Client(['handler' => HandlerStack::create($mock)]);
             $checksClient = new ChecksClient('custom-token', $httpClient, 'owner/repo', 'sha123');
 
-            app()->singleton(TestsCommand::class, fn () => new TestsCommand($check, $checksClient));
+            ($this->createCommand)($check, $checksClient);
 
             $this->artisan('tests', ['--token' => 'custom-token'])
                 ->assertSuccessful();
@@ -87,7 +95,7 @@ describe('TestsCommand', function () {
             $httpClient = new Client(['handler' => HandlerStack::create($mock)]);
             $checksClient = new ChecksClient('token', $httpClient, 'owner/repo', 'sha123');
 
-            app()->singleton(TestsCommand::class, fn () => new TestsCommand($check, $checksClient));
+            ($this->createCommand)($check, $checksClient);
 
             $this->artisan('tests', ['--coverage' => '90'])
                 ->assertSuccessful();
