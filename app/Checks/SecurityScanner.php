@@ -4,10 +4,15 @@ declare(strict_types=1);
 
 namespace App\Checks;
 
-use Symfony\Component\Process\Process;
+use App\Contracts\ProcessRunner;
+use App\Services\SymfonyProcessRunner;
 
 final class SecurityScanner implements CheckInterface
 {
+    public function __construct(
+        private readonly ProcessRunner $processRunner = new SymfonyProcessRunner(),
+    ) {}
+
     public function name(): string
     {
         return 'Security Audit';
@@ -15,18 +20,15 @@ final class SecurityScanner implements CheckInterface
 
     public function run(string $workingDirectory): CheckResult
     {
-        $process = new Process(
+        $result = $this->processRunner->run(
             ['composer', 'audit', '--format=json'],
             $workingDirectory,
             timeout: 60,
         );
 
-        $process->run();
+        $data = json_decode($result->output, true) ?? [];
 
-        $output = $process->getOutput();
-        $data = json_decode($output, true) ?? [];
-
-        if ($process->isSuccessful() && empty($data['advisories'] ?? [])) {
+        if ($result->successful && empty($data['advisories'] ?? [])) {
             return CheckResult::pass('No security vulnerabilities found');
         }
 

@@ -15,30 +15,41 @@ use LaravelZero\Framework\Commands\Command;
 
 use function Laravel\Prompts\error;
 use function Laravel\Prompts\info;
-use function Laravel\Prompts\spin;
 use function Laravel\Prompts\table;
 
 final class CertifyCommand extends Command
 {
     protected $signature = 'certify
         {--coverage=80 : Minimum coverage threshold percentage}
-        {--token= : GitHub token for Checks API}';
+        {--token= : GitHub token for Checks API}
+        {--stop-on-failure : Stop at first failing check}';
 
     protected $description = 'Run all checks and issue Sentinel Certification';
+
+    /**
+     * @param  array<CheckInterface>|null  $checks
+     */
+    public function __construct(
+        private ?array $checks = null,
+        private ?ChecksClient $checksClient = null,
+    ) {
+        parent::__construct();
+    }
 
     public function handle(): int
     {
         $coverageThreshold = (int) $this->option('coverage');
         $token = $this->option('token') ?: getenv('GITHUB_TOKEN') ?: null;
-        $checksClient = new ChecksClient($token);
+        $checksClient = $this->checksClient ?? new ChecksClient($token);
         $workingDirectory = getcwd();
 
-        $checks = [
+        $checks = $this->checks ?? [
             new TestRunner($coverageThreshold),
             new SecurityScanner(),
             new PestSyntaxValidator(),
         ];
 
+        $stopOnFailure = $this->option('stop-on-failure');
         $failures = [];
         $failureRows = [];
 
@@ -48,6 +59,10 @@ final class CertifyCommand extends Command
                 $failures[] = "[{$check->name()}] {$result->message}";
                 foreach ($result->details as $detail) {
                     $failureRows[] = [$check->name(), $detail];
+                }
+
+                if ($stopOnFailure) {
+                    break;
                 }
             }
         }
@@ -110,10 +125,7 @@ final class CertifyCommand extends Command
         string $workingDirectory,
         ChecksClient $checksClient,
     ): \App\Checks\CheckResult {
-        $result = spin(
-            fn () => $check->run($workingDirectory),
-            "Running {$check->name()}..."
-        );
+        $result = $check->run($workingDirectory);
 
         // Report to GitHub Checks API
         $checksClient->reportCheck(
