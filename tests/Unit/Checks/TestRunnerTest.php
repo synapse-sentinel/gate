@@ -74,7 +74,7 @@ OUTPUT,
             ->once()
             ->andReturn(new ProcessResult(
                 successful: false,
-                output: "Tests:  5 passed\nCode coverage below expected: 89.50%",
+                output: "Tests:  5 passed\nFAIL  Code coverage below expected  100.0 %, currently  89.50 %.",
             ));
 
         $runner = new TestRunner(
