@@ -21,6 +21,9 @@ final class ChecksClient
         ?string $repo = null,
         ?string $sha = null,
     ) {
+        // Debug: what did we receive?
+        $tokenLen = $this->token ? strlen($this->token) : 0;
+        echo "::notice::ChecksClient constructor - token length: {$tokenLen}\n";
         $this->client = $client ?? new Client([
             'base_uri' => 'https://api.github.com/',
             'headers' => [
