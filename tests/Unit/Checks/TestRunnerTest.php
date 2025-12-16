@@ -163,4 +163,69 @@ OUTPUT,
         expect($result->passed)->toBeTrue();
         expect($result->message)->toBe('5 tests passed');
     });
+
+    it('includes file coverage details when below threshold', function () {
+        $mockRunner = mock(ProcessRunner::class);
+        $mockRunner->shouldReceive('run')
+            ->once()
+            ->andReturn(new ProcessResult(
+                successful: false,
+                output: <<<'OUTPUT'
+Tests:  5 passed
+  App/Services/FooService .............. 85.0%
+  App/Services/BarService .............. 92.5%
+  App/Services/BazService .............. 100.0%
+  Total ................................ 95.0%
+FAIL  Code coverage below expected  100.0 %, currently  95.0 %.
+OUTPUT,
+            ));
+
+        $runner = new TestRunner(
+            coverageThreshold: 100,
+            parser: new PestOutputParser(),
+            processRunner: $mockRunner,
+        );
+
+        $result = $runner->run('/tmp');
+
+        expect($result->passed)->toBeFalse();
+        expect($result->details)->toContain('Coverage: 95% (threshold: 100%)');
+        expect($result->details)->toContain('  App/Services/FooService: 85%');
+        expect($result->details)->toContain('  App/Services/BarService: 92.5%');
+    });
+
+    it('limits file coverage details to 5 files', function () {
+        $mockRunner = mock(ProcessRunner::class);
+        $mockRunner->shouldReceive('run')
+            ->once()
+            ->andReturn(new ProcessResult(
+                successful: false,
+                output: <<<'OUTPUT'
+Tests:  5 passed
+  App/Services/Service1 .............. 80.0%
+  App/Services/Service2 .............. 81.0%
+  App/Services/Service3 .............. 82.0%
+  App/Services/Service4 .............. 83.0%
+  App/Services/Service5 .............. 84.0%
+  App/Services/Service6 .............. 85.0%
+  App/Services/Service7 .............. 86.0%
+  Total ............................... 83.0%
+FAIL  Code coverage below expected  100.0 %, currently  83.0 %.
+OUTPUT,
+            ));
+
+        $runner = new TestRunner(
+            coverageThreshold: 100,
+            parser: new PestOutputParser(),
+            processRunner: $mockRunner,
+        );
+
+        $result = $runner->run('/tmp');
+
+        expect($result->passed)->toBeFalse();
+        // Should have: coverage summary + 5 files + "...and X more files"
+        $fileDetails = array_filter($result->details, fn ($d) => str_starts_with($d, '  App/'));
+        expect($fileDetails)->toHaveCount(5);
+        expect($result->details)->toContain('  ...and 2 more files');
+    });
 });

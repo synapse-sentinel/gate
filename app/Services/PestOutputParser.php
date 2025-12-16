@@ -30,6 +30,31 @@ final class PestOutputParser
         return preg_match('/Code coverage below expected.*?currently\s+([\d.]+)\s*%/i', $output, $m) ? (float) $m[1] : null;
     }
 
+    /**
+     * Parse file coverage and return files below threshold.
+     *
+     * @return array<string, float> File path => coverage percentage
+     */
+    public function parseFileCoverage(string $output, float $threshold = 100.0): array
+    {
+        $uncovered = [];
+
+        // Pest format: "  FileName/Path ............ XX.X%"
+        preg_match_all('/^\s{2}(\S+)\s+\.+\s+([\d.]+)%/m', $output, $matches, PREG_SET_ORDER);
+
+        foreach ($matches as $match) {
+            $file = $match[1];
+            $coverage = (float) $match[2];
+
+            // Skip "Total" line and files meeting threshold
+            if ($file !== 'Total' && $coverage < $threshold) {
+                $uncovered[$file] = $coverage;
+            }
+        }
+
+        return $uncovered;
+    }
+
     private function formatFailure(string $name, string $body): string
     {
         $name = preg_replace('/\s+[\d.]+s$/', '', trim($name));

@@ -66,6 +66,16 @@ final class TestRunner implements CheckInterface
 
         if ($actual = $this->parser->isCoverageBelowThreshold($output)) {
             $details[] = "Coverage: {$actual}% (threshold: {$this->coverageThreshold}%)";
+
+            // Add files missing coverage (limit to 5)
+            $uncovered = $this->parser->parseFileCoverage($output, (float) $this->coverageThreshold);
+            foreach (array_slice($uncovered, 0, 5, true) as $file => $coverage) {
+                $details[] = "  {$file}: {$coverage}%";
+            }
+
+            if (count($uncovered) > 5) {
+                $details[] = '  ...and '.(count($uncovered) - 5).' more files';
+            }
         }
 
         return $details;

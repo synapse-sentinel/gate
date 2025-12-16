@@ -159,4 +159,65 @@ OUTPUT;
             expect($parser->isCoverageBelowThreshold($output))->toBeNull();
         });
     });
+
+    describe('parseFileCoverage', function () {
+        it('extracts files below threshold', function () {
+            $parser = new PestOutputParser();
+            $output = <<<'OUTPUT'
+  App/Services/FooService .............. 85.0%
+  App/Services/BarService .............. 92.5%
+  App/Services/BazService .............. 100.0%
+  Total ................................ 95.0%
+OUTPUT;
+            $uncovered = $parser->parseFileCoverage($output, 100.0);
+
+            expect($uncovered)->toHaveCount(2);
+            expect($uncovered['App/Services/FooService'])->toBe(85.0);
+            expect($uncovered['App/Services/BarService'])->toBe(92.5);
+        });
+
+        it('excludes Total line', function () {
+            $parser = new PestOutputParser();
+            $output = <<<'OUTPUT'
+  App/Services/FooService .............. 85.0%
+  Total ................................ 85.0%
+OUTPUT;
+            $uncovered = $parser->parseFileCoverage($output, 100.0);
+
+            expect($uncovered)->toHaveCount(1);
+            expect($uncovered)->not->toHaveKey('Total');
+        });
+
+        it('returns empty array when all files meet threshold', function () {
+            $parser = new PestOutputParser();
+            $output = <<<'OUTPUT'
+  App/Services/FooService .............. 100.0%
+  App/Services/BarService .............. 100.0%
+  Total ................................ 100.0%
+OUTPUT;
+            $uncovered = $parser->parseFileCoverage($output, 100.0);
+
+            expect($uncovered)->toBeEmpty();
+        });
+
+        it('respects custom threshold', function () {
+            $parser = new PestOutputParser();
+            $output = <<<'OUTPUT'
+  App/Services/FooService .............. 75.0%
+  App/Services/BarService .............. 85.0%
+  Total ................................ 80.0%
+OUTPUT;
+            $uncovered = $parser->parseFileCoverage($output, 80.0);
+
+            expect($uncovered)->toHaveCount(1);
+            expect($uncovered['App/Services/FooService'])->toBe(75.0);
+        });
+
+        it('returns empty array when no coverage output', function () {
+            $parser = new PestOutputParser();
+            $output = 'Tests:  5 passed';
+
+            expect($parser->parseFileCoverage($output))->toBeEmpty();
+        });
+    });
 });
