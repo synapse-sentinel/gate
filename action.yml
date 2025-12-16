@@ -68,27 +68,23 @@ runs:
       shell: bash
       env:
         GITHUB_STEP_SUMMARY: ${{ github.step_summary }}
-        GITHUB_TOKEN: ${{ inputs.github-token }}
+        GITHUB_TOKEN: ${{ github.token }}
         GITHUB_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
       run: |
         case "${{ inputs.check }}" in
           tests)
             php ${{ github.action_path }}/gate tests \
-              --coverage=${{ inputs.coverage-threshold }} \
-              --token="${{ inputs.github-token }}"
+              --coverage=${{ inputs.coverage-threshold }}
             ;;
           security)
-            php ${{ github.action_path }}/gate security \
-              --token="${{ inputs.github-token }}"
+            php ${{ github.action_path }}/gate security
             ;;
           syntax)
-            php ${{ github.action_path }}/gate syntax \
-              --token="${{ inputs.github-token }}"
+            php ${{ github.action_path }}/gate syntax
             ;;
           certify|*)
             php ${{ github.action_path }}/gate certify \
-              --coverage=${{ inputs.coverage-threshold }} \
-              --token="${{ inputs.github-token }}"
+              --coverage=${{ inputs.coverage-threshold }}
             ;;
         esac
 
