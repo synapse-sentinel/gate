@@ -198,5 +198,56 @@ describe('CertifyCommand', function () {
             $this->artisan('certify', ['--token' => 'custom-token'])
                 ->assertSuccessful();
         });
+
+        it('stops at first failure when stop-on-failure option is set', function () {
+            $failingCheck = Mockery::mock(CheckInterface::class);
+            $failingCheck->shouldReceive('name')->andReturn('Tests');
+            $failingCheck->shouldReceive('run')
+                ->once()
+                ->andReturn(CheckResult::fail('Tests failed', ['Error 1']));
+
+            $neverRunCheck = Mockery::mock(CheckInterface::class);
+            $neverRunCheck->shouldReceive('name')->andReturn('Security');
+            $neverRunCheck->shouldNotReceive('run'); // Should never be called
+
+            $mock = new MockHandler([
+                new Response(201), // First check
+                new Response(201), // Certification
+            ]);
+            $httpClient = new Client(['handler' => HandlerStack::create($mock)]);
+            $checksClient = new ChecksClient('token', $httpClient, 'owner/repo', 'sha123');
+
+            app()->singleton(CertifyCommand::class, fn () => new CertifyCommand([$failingCheck, $neverRunCheck], $checksClient));
+
+            $this->artisan('certify', ['--stop-on-failure' => true])
+                ->assertFailed();
+        });
+
+        it('runs all checks without stop-on-failure option', function () {
+            $failingCheck = Mockery::mock(CheckInterface::class);
+            $failingCheck->shouldReceive('name')->andReturn('Tests');
+            $failingCheck->shouldReceive('run')
+                ->once()
+                ->andReturn(CheckResult::fail('Tests failed', ['Error 1']));
+
+            $secondCheck = Mockery::mock(CheckInterface::class);
+            $secondCheck->shouldReceive('name')->andReturn('Security');
+            $secondCheck->shouldReceive('run')
+                ->once() // Should still run
+                ->andReturn(CheckResult::pass('OK'));
+
+            $mock = new MockHandler([
+                new Response(201), // First check
+                new Response(201), // Second check
+                new Response(201), // Certification
+            ]);
+            $httpClient = new Client(['handler' => HandlerStack::create($mock)]);
+            $checksClient = new ChecksClient('token', $httpClient, 'owner/repo', 'sha123');
+
+            app()->singleton(CertifyCommand::class, fn () => new CertifyCommand([$failingCheck, $secondCheck], $checksClient));
+
+            $this->artisan('certify')
+                ->assertFailed();
+        });
     });
 });

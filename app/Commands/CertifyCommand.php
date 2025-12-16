@@ -21,7 +21,8 @@ final class CertifyCommand extends Command
 {
     protected $signature = 'certify
         {--coverage=80 : Minimum coverage threshold percentage}
-        {--token= : GitHub token for Checks API}';
+        {--token= : GitHub token for Checks API}
+        {--stop-on-failure : Stop at first failing check}';
 
     protected $description = 'Run all checks and issue Sentinel Certification';
 
@@ -48,6 +49,7 @@ final class CertifyCommand extends Command
             new PestSyntaxValidator(),
         ];
 
+        $stopOnFailure = $this->option('stop-on-failure');
         $failures = [];
         $failureRows = [];
 
@@ -57,6 +59,10 @@ final class CertifyCommand extends Command
                 $failures[] = "[{$check->name()}] {$result->message}";
                 foreach ($result->details as $detail) {
                     $failureRows[] = [$check->name(), $detail];
+                }
+
+                if ($stopOnFailure) {
+                    break;
                 }
             }
         }
