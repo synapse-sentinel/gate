@@ -143,7 +143,7 @@ OUTPUT;
     describe('isCoverageBelowThreshold', function () {
         it('detects coverage below threshold', function () {
             $parser = new PestOutputParser();
-            $output = 'Code coverage below expected: 89.50%';
+            $output = 'FAIL  Code coverage below expected  100.0 %, currently  89.50 %.';
             expect($parser->isCoverageBelowThreshold($output))->toBe(89.5);
         });
 
