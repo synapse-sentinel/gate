@@ -75,20 +75,20 @@ runs:
           tests)
             php ${{ github.action_path }}/gate tests \
               --coverage=${{ inputs.coverage-threshold }} \
-              --token=${{ inputs.github-token }}
+              --token="${{ inputs.github-token }}"
             ;;
           security)
             php ${{ github.action_path }}/gate security \
-              --token=${{ inputs.github-token }}
+              --token="${{ inputs.github-token }}"
             ;;
           syntax)
             php ${{ github.action_path }}/gate syntax \
-              --token=${{ inputs.github-token }}
+              --token="${{ inputs.github-token }}"
             ;;
           certify|*)
             php ${{ github.action_path }}/gate certify \
               --coverage=${{ inputs.coverage-threshold }} \
-              --token=${{ inputs.github-token }}
+              --token="${{ inputs.github-token }}"
             ;;
         esac
 
