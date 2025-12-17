@@ -70,5 +70,13 @@ describe('Gate Commands', function () {
             $command = new CertifyCommand();
             expect($command->getDefinition()->hasOption('token'))->toBeTrue();
         });
+
+        it('has compact option', function () {
+            $command = new CertifyCommand();
+            $definition = $command->getDefinition();
+
+            expect($definition->hasOption('compact'))->toBeTrue();
+            expect($definition->getOption('compact')->getDefault())->toBeFalse();
+        });
     });
 });
