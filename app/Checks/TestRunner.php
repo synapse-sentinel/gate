@@ -24,7 +24,7 @@ final class TestRunner implements CheckInterface
     public function run(string $workingDirectory): CheckResult
     {
         $result = $this->processRunner->run(
-            ['vendor/bin/pest', '--coverage', "--min={$this->coverageThreshold}", '--colors=never'],
+            ['vendor/bin/pest', '--coverage', "--min={$this->coverageThreshold}", "--coverage-clover={$workingDirectory}/coverage.xml", '--colors=never'],
             $workingDirectory,
             timeout: 300,
         );
