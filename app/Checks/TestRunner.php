@@ -10,11 +10,22 @@ use App\Services\SymfonyProcessRunner;
 
 final class TestRunner implements CheckInterface
 {
+    /** @var callable|null For testing */
+    private $coverageCommentCallback = null;
+
     public function __construct(
         private readonly int $coverageThreshold = 100,
         private readonly PestOutputParser $parser = new PestOutputParser(),
         private readonly ProcessRunner $processRunner = new SymfonyProcessRunner(),
     ) {}
+
+    /** @internal For testing only */
+    public function withCoverageCommentCallback(callable $callback): self
+    {
+        $this->coverageCommentCallback = $callback;
+
+        return $this;
+    }
 
     public function name(): string
     {
@@ -46,6 +57,13 @@ final class TestRunner implements CheckInterface
 
     private function postCoverageComment(string $cloverPath): void
     {
+        // Use callback if provided (for testing)
+        if ($this->coverageCommentCallback !== null) {
+            ($this->coverageCommentCallback)($cloverPath);
+
+            return;
+        }
+
         // Only post if coverage-comment is enabled (default: true)
         $coverageCommentEnabled = getenv('COVERAGE_COMMENT') !== 'false';
         if (! $coverageCommentEnabled || ! file_exists($cloverPath)) {

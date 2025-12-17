@@ -17,8 +17,11 @@ final class CommentsClient
 
     public function __construct(
         private readonly ?string $token = null,
+        ?Client $client = null,
+        ?string $repo = null,
+        ?int $prNumber = null,
     ) {
-        $this->client = new Client([
+        $this->client = $client ?? new Client([
             'base_uri' => 'https://api.github.com/',
             'headers' => [
                 'Accept' => 'application/vnd.github+json',
@@ -27,8 +30,8 @@ final class CommentsClient
             ],
         ]);
 
-        $this->repo = getenv('GITHUB_REPOSITORY') ?: '';
-        $this->prNumber = $this->extractPRNumber();
+        $this->repo = $repo ?? (getenv('GITHUB_REPOSITORY') ?: '');
+        $this->prNumber = $prNumber ?? $this->extractPRNumber();
     }
 
     public function isAvailable(): bool
