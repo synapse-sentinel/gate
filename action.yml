@@ -31,6 +31,14 @@ inputs:
     description: 'Merge method: squash, merge, or rebase'
     required: false
     default: 'squash'
+  coverage-driver:
+    description: 'Code coverage driver: pcov (default, faster) or xdebug'
+    required: false
+    default: 'pcov'
+  coverage-directory:
+    description: 'Directory to scan for coverage (auto-detects app/ or src/ if not specified)'
+    required: false
+    default: ''
 
 outputs:
   verdict:
@@ -46,13 +54,30 @@ outputs:
 runs:
   using: 'composite'
   steps:
+    - name: Configure Coverage
+      shell: bash
+      run: |
+        if [ "${{ inputs.coverage-driver }}" = "pcov" ]; then
+          if [ -n "${{ inputs.coverage-directory }}" ]; then
+            COVERAGE_DIR="${{ github.workspace }}/${{ inputs.coverage-directory }}"
+          elif [ -d "${{ github.workspace }}/app" ]; then
+            COVERAGE_DIR="${{ github.workspace }}/app"
+          elif [ -d "${{ github.workspace }}/src" ]; then
+            COVERAGE_DIR="${{ github.workspace }}/src"
+          else
+            COVERAGE_DIR="${{ github.workspace }}"
+          fi
+          echo "PCOV_DIRECTORY=$COVERAGE_DIR" >> $GITHUB_ENV
+        fi
+
     - name: Setup
       uses: shivammathur/setup-php@v2
       with:
         php-version: ${{ inputs.php-version }}
         extensions: mbstring, xml, ctype, json, dom
-        coverage: xdebug
+        coverage: ${{ inputs.coverage-driver }}
         tools: composer:v2
+        ini-values: ${{ inputs.coverage-driver == 'pcov' && format('pcov.directory={0}', env.PCOV_DIRECTORY) || '' }}
 
     - name: Install
       shell: bash
@@ -68,23 +93,27 @@ runs:
       shell: bash
       env:
         GITHUB_STEP_SUMMARY: ${{ github.step_summary }}
-        GITHUB_TOKEN: ${{ github.token }}
+        GITHUB_TOKEN: ${{ inputs.github-token }}
         GITHUB_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
       run: |
         case "${{ inputs.check }}" in
           tests)
             php ${{ github.action_path }}/gate tests \
-              --coverage=${{ inputs.coverage-threshold }}
+              --coverage=${{ inputs.coverage-threshold }} \
+              --token=${{ inputs.github-token }}
             ;;
           security)
-            php ${{ github.action_path }}/gate security
+            php ${{ github.action_path }}/gate security \
+              --token=${{ inputs.github-token }}
             ;;
           syntax)
-            php ${{ github.action_path }}/gate syntax
+            php ${{ github.action_path }}/gate syntax \
+              --token=${{ inputs.github-token }}
             ;;
           certify|*)
             php ${{ github.action_path }}/gate certify \
-              --coverage=${{ inputs.coverage-threshold }}
+              --coverage=${{ inputs.coverage-threshold }} \
+              --token=${{ inputs.github-token }}
             ;;
         esac
 
@@ -93,23 +122,7 @@ runs:
       shell: bash
       env:
         GH_TOKEN: ${{ inputs.github-token }}
-        PR_BODY: ${{ github.event.pull_request.body }}
-        PR_TITLE: ${{ github.event.pull_request.title }}
-        PR_NUMBER: ${{ github.event.pull_request.number }}
       run: |
-        # Extract issue-closing keywords (Closes #X, Fixes #X, Resolves #X)
-        ISSUE_REFS=$(echo "$PR_BODY" | grep -oiE '(close[sd]?|fix(e[sd])?|resolve[sd]?) #[0-9]+' | sort -u || true)
-
-        # Merge with issue references in commit body if found
-        if [ -n "$ISSUE_REFS" ]; then
-          COMMIT_BODY=$(printf '%s\n' $ISSUE_REFS)
-          gh pr merge "$PR_NUMBER" \
-            --${{ inputs.merge-method }} \
-            --subject "$PR_TITLE (#$PR_NUMBER)" \
-            --body "$COMMIT_BODY" \
-            --delete-branch
-        else
-          gh pr merge "$PR_NUMBER" \
-            --${{ inputs.merge-method }} \
-            --delete-branch
-        fi
+        gh pr merge ${{ github.event.pull_request.number }} \
+          --${{ inputs.merge-method }} \
+          --delete-branch
