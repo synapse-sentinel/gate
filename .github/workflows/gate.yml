@@ -22,5 +22,23 @@ jobs:
       - name: Install dependencies
         run: composer install --prefer-dist --no-progress
 
+      - name: Download base branch coverage
+        if: github.event_name == 'pull_request'
+        uses: dawidd6/action-download-artifact@v6
+        continue-on-error: true
+        with:
+          workflow: gate.yml
+          branch: ${{ github.event.pull_request.base.ref }}
+          name: coverage-report
+          path: base-coverage
+
       - name: Run Gate on itself
         run: php gate certify --coverage=100
+
+      - name: Upload coverage artifact
+        if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: coverage.xml
+          retention-days: 30
