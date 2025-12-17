@@ -10,8 +10,11 @@ use App\Services\SymfonyProcessRunner;
 
 final class TestRunner implements CheckInterface
 {
-    /** @var callable|null For testing */
-    private $coverageCommentCallback = null;
+    /** @var \App\GitHub\CommentsClient|null For testing */
+    private ?\App\GitHub\CommentsClient $commentsClient = null;
+
+    /** @var \App\Services\CoverageReporter|null For testing */
+    private ?\App\Services\CoverageReporter $coverageReporter = null;
 
     public function __construct(
         private readonly int $coverageThreshold = 100,
@@ -20,9 +23,12 @@ final class TestRunner implements CheckInterface
     ) {}
 
     /** @internal For testing only */
-    public function withCoverageCommentCallback(callable $callback): self
-    {
-        $this->coverageCommentCallback = $callback;
+    public function withCommentDependencies(
+        \App\GitHub\CommentsClient $commentsClient,
+        \App\Services\CoverageReporter $coverageReporter,
+    ): self {
+        $this->commentsClient = $commentsClient;
+        $this->coverageReporter = $coverageReporter;
 
         return $this;
     }
@@ -57,13 +63,6 @@ final class TestRunner implements CheckInterface
 
     private function postCoverageComment(string $cloverPath): void
     {
-        // Use callback if provided (for testing)
-        if ($this->coverageCommentCallback !== null) {
-            ($this->coverageCommentCallback)($cloverPath);
-
-            return;
-        }
-
         // Only post if coverage-comment is enabled (default: true)
         $coverageCommentEnabled = getenv('COVERAGE_COMMENT') !== 'false';
         if (! $coverageCommentEnabled || ! file_exists($cloverPath)) {
@@ -71,12 +70,12 @@ final class TestRunner implements CheckInterface
         }
 
         $token = getenv('GITHUB_TOKEN');
-        if (! $token) {
+        if (! $token && $this->commentsClient === null) {
             return;
         }
 
-        $commentsClient = new \App\GitHub\CommentsClient($token);
-        $reporter = new \App\Services\CoverageReporter($this->coverageThreshold);
+        $commentsClient = $this->commentsClient ?? new \App\GitHub\CommentsClient($token);
+        $reporter = $this->coverageReporter ?? new \App\Services\CoverageReporter($this->coverageThreshold);
 
         if ($commentsClient->isAvailable()) {
             try {

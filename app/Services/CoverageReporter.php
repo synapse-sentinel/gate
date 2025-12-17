@@ -6,7 +6,7 @@ namespace App\Services;
 
 use SimpleXMLElement;
 
-final class CoverageReporter
+class CoverageReporter
 {
     public function __construct(
         private readonly int $threshold = 100,

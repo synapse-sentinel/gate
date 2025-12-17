@@ -7,7 +7,7 @@ namespace App\GitHub;
 use GuzzleHttp\Client;
 use GuzzleHttp\Exception\GuzzleException;
 
-final class CommentsClient
+class CommentsClient
 {
     private Client $client;
 

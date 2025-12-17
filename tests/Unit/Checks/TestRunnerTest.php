@@ -275,9 +275,13 @@ OUTPUT,
             rmdir($tempDir);
         });
 
-        it('calls coverage comment callback when provided', function () {
-            $callbackCalled = false;
-            $receivedPath = null;
+        it('posts comment when dependencies are injected and available', function () {
+            putenv('COVERAGE_COMMENT=true');
+
+            // Create temp dir with coverage.xml
+            $tempDir = sys_get_temp_dir() . '/test_coverage_di_' . uniqid();
+            mkdir($tempDir);
+            file_put_contents($tempDir . '/coverage.xml', '<?xml version="1.0"?><coverage><project><metrics statements="100" coveredstatements="100" elements="100" coveredelements="100"/></project></coverage>');
 
             $mockRunner = mock(ProcessRunner::class);
             $mockRunner->shouldReceive('run')
@@ -287,22 +291,118 @@ OUTPUT,
                     output: 'Tests:  1 passed',
                 ));
 
+            // Mock CommentsClient
+            $mockCommentsClient = mock(\App\GitHub\CommentsClient::class);
+            $mockCommentsClient->shouldReceive('isAvailable')->andReturn(true);
+            $mockCommentsClient->shouldReceive('postOrUpdateComment')->once()->andReturn(true);
+
+            // Mock CoverageReporter
+            $mockReporter = mock(\App\Services\CoverageReporter::class);
+            $mockReporter->shouldReceive('generatePRComment')
+                ->with($tempDir . '/coverage.xml')
+                ->once()
+                ->andReturn('Coverage: 100%');
+
             $runner = new TestRunner(
                 coverageThreshold: 100,
                 parser: new PestOutputParser(),
                 processRunner: $mockRunner,
             );
 
-            $runner->withCoverageCommentCallback(function ($path) use (&$callbackCalled, &$receivedPath) {
-                $callbackCalled = true;
-                $receivedPath = $path;
-            });
+            $runner->withCommentDependencies($mockCommentsClient, $mockReporter);
 
-            $result = $runner->run('/my/test/path');
+            $result = $runner->run($tempDir);
+
+            expect($result->passed)->toBeTrue();
+
+            // Cleanup
+            unlink($tempDir . '/coverage.xml');
+            rmdir($tempDir);
+        });
+
+        it('skips comment when CommentsClient is not available', function () {
+            putenv('COVERAGE_COMMENT=true');
+
+            // Create temp dir with coverage.xml
+            $tempDir = sys_get_temp_dir() . '/test_coverage_unavail_' . uniqid();
+            mkdir($tempDir);
+            file_put_contents($tempDir . '/coverage.xml', '<?xml version="1.0"?><coverage><project><metrics/></project></coverage>');
+
+            $mockRunner = mock(ProcessRunner::class);
+            $mockRunner->shouldReceive('run')
+                ->once()
+                ->andReturn(new ProcessResult(
+                    successful: true,
+                    output: 'Tests:  1 passed',
+                ));
+
+            // Mock CommentsClient - not available
+            $mockCommentsClient = mock(\App\GitHub\CommentsClient::class);
+            $mockCommentsClient->shouldReceive('isAvailable')->andReturn(false);
+            $mockCommentsClient->shouldNotReceive('postOrUpdateComment');
+
+            $mockReporter = mock(\App\Services\CoverageReporter::class);
+
+            $runner = new TestRunner(
+                coverageThreshold: 100,
+                parser: new PestOutputParser(),
+                processRunner: $mockRunner,
+            );
+
+            $runner->withCommentDependencies($mockCommentsClient, $mockReporter);
+
+            $result = $runner->run($tempDir);
+
+            expect($result->passed)->toBeTrue();
+
+            // Cleanup
+            unlink($tempDir . '/coverage.xml');
+            rmdir($tempDir);
+        });
+
+        it('silently catches exceptions when posting comment fails', function () {
+            putenv('COVERAGE_COMMENT=true');
+
+            // Create temp dir with coverage.xml
+            $tempDir = sys_get_temp_dir() . '/test_coverage_error_' . uniqid();
+            mkdir($tempDir);
+            file_put_contents($tempDir . '/coverage.xml', '<?xml version="1.0"?><coverage><project><metrics statements="100" coveredstatements="100" elements="100" coveredelements="100"/></project></coverage>');
+
+            $mockRunner = mock(ProcessRunner::class);
+            $mockRunner->shouldReceive('run')
+                ->once()
+                ->andReturn(new ProcessResult(
+                    successful: true,
+                    output: 'Tests:  1 passed',
+                ));
+
+            // Mock CommentsClient
+            $mockCommentsClient = mock(\App\GitHub\CommentsClient::class);
+            $mockCommentsClient->shouldReceive('isAvailable')->andReturn(true);
+
+            // Mock CoverageReporter - throws exception
+            $mockReporter = mock(\App\Services\CoverageReporter::class);
+            $mockReporter->shouldReceive('generatePRComment')
+                ->andThrow(new \Exception('Test error'));
+
+            $runner = new TestRunner(
+                coverageThreshold: 100,
+                parser: new PestOutputParser(),
+                processRunner: $mockRunner,
+            );
+
+            $runner->withCommentDependencies($mockCommentsClient, $mockReporter);
+
+            ob_start();
+            $result = $runner->run($tempDir);
+            $output = ob_get_clean();
 
             expect($result->passed)->toBeTrue()
-                ->and($callbackCalled)->toBeTrue()
-                ->and($receivedPath)->toBe('/my/test/path/coverage.xml');
+                ->and($output)->toContain('::debug::Coverage comment failed');
+
+            // Cleanup
+            unlink($tempDir . '/coverage.xml');
+            rmdir($tempDir);
         });
     });
 
