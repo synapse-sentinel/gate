@@ -39,6 +39,14 @@ inputs:
     description: 'Directory to scan for coverage (auto-detects app/ or src/ if not specified)'
     required: false
     default: ''
+  compact:
+    description: 'Use compact single-line output instead of verbose'
+    required: false
+    default: 'false'
+  coverage-comment:
+    description: 'Post coverage report as PR comment'
+    required: false
+    default: 'true'
 
 outputs:
   verdict:
@@ -95,6 +103,7 @@ runs:
         GITHUB_STEP_SUMMARY: ${{ github.step_summary }}
         GITHUB_TOKEN: ${{ inputs.github-token }}
         GITHUB_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        COVERAGE_COMMENT: ${{ inputs.coverage-comment }}
       run: |
         case "${{ inputs.check }}" in
           tests)
@@ -113,7 +122,8 @@ runs:
           certify|*)
             php ${{ github.action_path }}/gate certify \
               --coverage=${{ inputs.coverage-threshold }} \
-              --token=${{ inputs.github-token }}
+              --token=${{ inputs.github-token }} \
+              ${{ inputs.compact == 'true' && '--compact' || '' }}
             ;;
         esac
 
