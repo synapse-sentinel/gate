@@ -128,7 +128,7 @@ OUTPUT,
         $mockRunner->shouldReceive('run')
             ->once()
             ->with(
-                ['vendor/bin/pest', '--coverage', '--min=80', '--colors=never'],
+                ['vendor/bin/pest', '--coverage', '--min=80', '--coverage-clover=/some/path/coverage.xml', '--colors=never'],
                 '/some/path',
                 Mockery::any()
             )
