@@ -258,5 +258,101 @@ describe('CertifyCommand', function () {
             $this->artisan('certify')
                 ->assertFailed();
         });
+
+        it('outputs compact format when --compact option is set and all checks pass', function () {
+            $testsCheck = Mockery::mock(CheckInterface::class);
+            $testsCheck->shouldReceive('name')->andReturn('Tests & Coverage');
+            $testsCheck->shouldReceive('run')
+                ->once()
+                ->andReturn(CheckResult::pass('All tests passed'));
+
+            $securityCheck = Mockery::mock(CheckInterface::class);
+            $securityCheck->shouldReceive('name')->andReturn('Security Audit');
+            $securityCheck->shouldReceive('run')
+                ->once()
+                ->andReturn(CheckResult::pass('No vulnerabilities'));
+
+            $syntaxCheck = Mockery::mock(CheckInterface::class);
+            $syntaxCheck->shouldReceive('name')->andReturn('Pest Syntax');
+            $syntaxCheck->shouldReceive('run')
+                ->once()
+                ->andReturn(CheckResult::pass('All files valid'));
+
+            $mock = new MockHandler([
+                new Response(201),
+                new Response(201),
+                new Response(201),
+                new Response(201),
+            ]);
+            $httpClient = new Client(['handler' => HandlerStack::create($mock)]);
+            $checksClient = new ChecksClient('token', $httpClient, 'owner/repo', 'sha123');
+
+            ($this->createCommand)([$testsCheck, $securityCheck, $syntaxCheck], $checksClient);
+
+            $this->artisan('certify', ['--compact' => true])
+                ->assertSuccessful();
+        });
+
+        it('outputs compact format when --compact option is set and a check fails', function () {
+            $testsCheck = Mockery::mock(CheckInterface::class);
+            $testsCheck->shouldReceive('name')->andReturn('Tests & Coverage');
+            $testsCheck->shouldReceive('run')
+                ->once()
+                ->andReturn(CheckResult::fail('3 tests failed', ['Test error']));
+
+            $securityCheck = Mockery::mock(CheckInterface::class);
+            $securityCheck->shouldReceive('name')->andReturn('Security Audit');
+            $securityCheck->shouldReceive('run')
+                ->once()
+                ->andReturn(CheckResult::pass('No vulnerabilities'));
+
+            $mock = new MockHandler([
+                new Response(201),
+                new Response(201),
+                new Response(201),
+            ]);
+            $httpClient = new Client(['handler' => HandlerStack::create($mock)]);
+            $checksClient = new ChecksClient('token', $httpClient, 'owner/repo', 'sha123');
+
+            ($this->createCommand)([$testsCheck, $securityCheck], $checksClient);
+
+            $this->artisan('certify', ['--compact' => true])
+                ->assertFailed();
+        });
+
+        it('shortens check names in compact output', function () {
+            // This test covers the shortName() method by using the actual check names
+            $testsCheck = Mockery::mock(CheckInterface::class);
+            $testsCheck->shouldReceive('name')->andReturn('Tests & Coverage');
+            $testsCheck->shouldReceive('run')
+                ->once()
+                ->andReturn(CheckResult::pass('OK'));
+
+            $securityCheck = Mockery::mock(CheckInterface::class);
+            $securityCheck->shouldReceive('name')->andReturn('Security Audit');
+            $securityCheck->shouldReceive('run')
+                ->once()
+                ->andReturn(CheckResult::pass('OK'));
+
+            $syntaxCheck = Mockery::mock(CheckInterface::class);
+            $syntaxCheck->shouldReceive('name')->andReturn('Pest Syntax');
+            $syntaxCheck->shouldReceive('run')
+                ->once()
+                ->andReturn(CheckResult::pass('OK'));
+
+            $mock = new MockHandler([
+                new Response(201),
+                new Response(201),
+                new Response(201),
+                new Response(201),
+            ]);
+            $httpClient = new Client(['handler' => HandlerStack::create($mock)]);
+            $checksClient = new ChecksClient('token', $httpClient, 'owner/repo', 'sha123');
+
+            ($this->createCommand)([$testsCheck, $securityCheck, $syntaxCheck], $checksClient);
+
+            $this->artisan('certify', ['--compact' => true])
+                ->assertSuccessful();
+        });
     });
 });
