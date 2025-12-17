@@ -43,6 +43,10 @@ inputs:
     description: 'Use compact single-line output instead of verbose'
     required: false
     default: 'false'
+  coverage-comment:
+    description: 'Post coverage report as PR comment'
+    required: false
+    default: 'true'
 
 outputs:
   verdict:
@@ -99,6 +103,7 @@ runs:
         GITHUB_STEP_SUMMARY: ${{ github.step_summary }}
         GITHUB_TOKEN: ${{ inputs.github-token }}
         GITHUB_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        COVERAGE_COMMENT: ${{ inputs.coverage-comment }}
       run: |
         case "${{ inputs.check }}" in
           tests)

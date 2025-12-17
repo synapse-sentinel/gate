@@ -23,11 +23,16 @@ final class TestRunner implements CheckInterface
 
     public function run(string $workingDirectory): CheckResult
     {
+        $cloverPath = $workingDirectory . '/coverage.xml';
+
         $result = $this->processRunner->run(
-            ['vendor/bin/pest', '--coverage', "--min={$this->coverageThreshold}", "--coverage-clover={$workingDirectory}/coverage.xml", '--colors=never'],
+            ['vendor/bin/pest', '--coverage', "--min={$this->coverageThreshold}", "--coverage-clover={$cloverPath}", '--colors=never'],
             $workingDirectory,
             timeout: 300,
         );
+
+        // Post coverage comment to PR if enabled
+        $this->postCoverageComment($cloverPath);
 
         if ($result->successful) {
             return CheckResult::pass($this->parseStats($result->output));
@@ -37,6 +42,33 @@ final class TestRunner implements CheckInterface
             $this->parseFailureMessage($result->output),
             $this->parseFailureDetails($result->output),
         );
+    }
+
+    private function postCoverageComment(string $cloverPath): void
+    {
+        // Only post if coverage-comment is enabled (default: true)
+        $coverageCommentEnabled = getenv('COVERAGE_COMMENT') !== 'false';
+        if (! $coverageCommentEnabled || ! file_exists($cloverPath)) {
+            return;
+        }
+
+        $token = getenv('GITHUB_TOKEN');
+        if (! $token) {
+            return;
+        }
+
+        $commentsClient = new \App\GitHub\CommentsClient($token);
+        $reporter = new \App\Services\CoverageReporter($this->coverageThreshold);
+
+        if ($commentsClient->isAvailable()) {
+            try {
+                $comment = $reporter->generatePRComment($cloverPath);
+                $commentsClient->postOrUpdateComment($comment);
+            } catch (\Exception $e) {
+                // Silent fail - don't break the build
+                echo "::debug::Coverage comment failed: {$e->getMessage()}\n";
+            }
+        }
     }
 
     private function parseStats(string $output): string
