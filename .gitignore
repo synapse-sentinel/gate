@@ -4,6 +4,8 @@
 /.phpunit.cache/
 /.pest/
 /coverage/
+coverage.xml
+base-coverage/
 .DS_Store
 *.swp
 *.swo
