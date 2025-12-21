@@ -7,15 +7,15 @@ use App\Services\CoverageReporter;
 describe('CoverageReporter', function () {
     describe('parseClover', function () {
         it('throws exception when file not found', function () {
-            $reporter = new CoverageReporter();
+            $reporter = new CoverageReporter;
             $reporter->parseClover('/nonexistent/path.xml');
         })->throws(RuntimeException::class, 'Coverage file not found');
 
         it('throws exception when file contains invalid XML', function () {
-            $tempFile = sys_get_temp_dir() . '/invalid_xml_' . uniqid() . '.xml';
+            $tempFile = sys_get_temp_dir().'/invalid_xml_'.uniqid().'.xml';
             file_put_contents($tempFile, 'not valid xml');
 
-            $reporter = new CoverageReporter();
+            $reporter = new CoverageReporter;
             try {
                 $reporter->parseClover($tempFile);
             } finally {
@@ -25,10 +25,10 @@ describe('CoverageReporter', function () {
 
         it('throws exception when clover format is missing project metrics', function () {
             $xml = '<?xml version="1.0"?><coverage><project></project></coverage>';
-            $tempFile = sys_get_temp_dir() . '/no_metrics_' . uniqid() . '.xml';
+            $tempFile = sys_get_temp_dir().'/no_metrics_'.uniqid().'.xml';
             file_put_contents($tempFile, $xml);
 
-            $reporter = new CoverageReporter();
+            $reporter = new CoverageReporter;
             try {
                 $reporter->parseClover($tempFile);
             } finally {
@@ -54,10 +54,10 @@ describe('CoverageReporter', function () {
 </coverage>
 XML;
 
-            $tempFile = sys_get_temp_dir() . '/valid_clover_' . uniqid() . '.xml';
+            $tempFile = sys_get_temp_dir().'/valid_clover_'.uniqid().'.xml';
             file_put_contents($tempFile, $xml);
 
-            $reporter = new CoverageReporter();
+            $reporter = new CoverageReporter;
             $result = $reporter->parseClover($tempFile);
 
             expect($result['total']['statements'])->toBe(100)
@@ -84,10 +84,10 @@ XML;
 </coverage>
 XML;
 
-            $tempFile = sys_get_temp_dir() . '/no_file_metrics_' . uniqid() . '.xml';
+            $tempFile = sys_get_temp_dir().'/no_file_metrics_'.uniqid().'.xml';
             file_put_contents($tempFile, $xml);
 
-            $reporter = new CoverageReporter();
+            $reporter = new CoverageReporter;
             $result = $reporter->parseClover($tempFile);
 
             expect($result['files'][0])->toBeEmpty();
@@ -105,10 +105,10 @@ XML;
 </coverage>
 XML;
 
-            $tempFile = sys_get_temp_dir() . '/zero_stmts_' . uniqid() . '.xml';
+            $tempFile = sys_get_temp_dir().'/zero_stmts_'.uniqid().'.xml';
             file_put_contents($tempFile, $xml);
 
-            $reporter = new CoverageReporter();
+            $reporter = new CoverageReporter;
             $result = $reporter->parseClover($tempFile);
 
             expect($result['total']['coverage_percent'])->toBe(0.0);
@@ -128,7 +128,7 @@ XML;
 </coverage>
 XML;
 
-            $tempFile = sys_get_temp_dir() . '/full_coverage_' . uniqid() . '.xml';
+            $tempFile = sys_get_temp_dir().'/full_coverage_'.uniqid().'.xml';
             file_put_contents($tempFile, $xml);
 
             $reporter = new CoverageReporter(100);
@@ -164,7 +164,7 @@ XML;
 </coverage>
 XML;
 
-            $tempFile = sys_get_temp_dir() . '/low_coverage_' . uniqid() . '.xml';
+            $tempFile = sys_get_temp_dir().'/low_coverage_'.uniqid().'.xml';
             file_put_contents($tempFile, $xml);
 
             $reporter = new CoverageReporter(80);
@@ -188,8 +188,8 @@ XML;
 </coverage>
 XML;
 
-            $currentFile = sys_get_temp_dir() . '/current_' . uniqid() . '.xml';
-            $baseFile = sys_get_temp_dir() . '/base_' . uniqid() . '.xml';
+            $currentFile = sys_get_temp_dir().'/current_'.uniqid().'.xml';
+            $baseFile = sys_get_temp_dir().'/base_'.uniqid().'.xml';
             file_put_contents($currentFile, $xml);
             file_put_contents($baseFile, $xml);
 
@@ -200,6 +200,191 @@ XML;
 
             unlink($currentFile);
             unlink($baseFile);
+        });
+    });
+
+    describe('path stripping', function () {
+        it('strips GitHub Actions workspace path', function () {
+            $xml = <<<'XML'
+<?xml version="1.0"?>
+<coverage>
+  <project timestamp="1234567890">
+    <metrics statements="100" coveredstatements="100" elements="100" coveredelements="100"/>
+    <package name="App">
+      <file name="/home/runner/work/my-app/my-app/app/Models/User.php">
+        <metrics statements="10" coveredstatements="10" elements="10" coveredelements="10"/>
+      </file>
+    </package>
+  </project>
+</coverage>
+XML;
+
+            $tempFile = sys_get_temp_dir().'/github_actions_path_'.uniqid().'.xml';
+            file_put_contents($tempFile, $xml);
+
+            $reporter = new CoverageReporter(100);
+            $result = $reporter->parseClover($tempFile);
+
+            expect($result['files'][0]['name'])->toBe('app/Models/User.php');
+
+            unlink($tempFile);
+        });
+
+        it('strips generic workspace path', function () {
+            $xml = <<<'XML'
+<?xml version="1.0"?>
+<coverage>
+  <project timestamp="1234567890">
+    <metrics statements="100" coveredstatements="100" elements="100" coveredelements="100"/>
+    <package name="App">
+      <file name="/workspace/my-service/src/Service.php">
+        <metrics statements="10" coveredstatements="10" elements="10" coveredelements="10"/>
+      </file>
+    </package>
+  </project>
+</coverage>
+XML;
+
+            $tempFile = sys_get_temp_dir().'/workspace_path_'.uniqid().'.xml';
+            file_put_contents($tempFile, $xml);
+
+            $reporter = new CoverageReporter(100);
+            $result = $reporter->parseClover($tempFile);
+
+            expect($result['files'][0]['name'])->toBe('my-service/src/Service.php');
+
+            unlink($tempFile);
+        });
+
+        it('strips monorepo duplicate path segments', function () {
+            $xml = <<<'XML'
+<?xml version="1.0"?>
+<coverage>
+  <project timestamp="1234567890">
+    <metrics statements="100" coveredstatements="100" elements="100" coveredelements="100"/>
+    <package name="App">
+      <file name="/workspace/packages/my-service/packages/my-service/src/Service.php">
+        <metrics statements="10" coveredstatements="10" elements="10" coveredelements="10"/>
+      </file>
+    </package>
+  </project>
+</coverage>
+XML;
+
+            $tempFile = sys_get_temp_dir().'/monorepo_dup_'.uniqid().'.xml';
+            file_put_contents($tempFile, $xml);
+
+            $reporter = new CoverageReporter(100);
+            $result = $reporter->parseClover($tempFile);
+
+            expect($result['files'][0]['name'])->toBe('packages/my-service/src/Service.php');
+
+            unlink($tempFile);
+        });
+
+        it('handles relative paths without workspace prefix', function () {
+            $xml = <<<'XML'
+<?xml version="1.0"?>
+<coverage>
+  <project timestamp="1234567890">
+    <metrics statements="100" coveredstatements="100" elements="100" coveredelements="100"/>
+    <package name="App">
+      <file name="app/Services/MyService.php">
+        <metrics statements="10" coveredstatements="10" elements="10" coveredelements="10"/>
+      </file>
+    </package>
+  </project>
+</coverage>
+XML;
+
+            $tempFile = sys_get_temp_dir().'/relative_path_'.uniqid().'.xml';
+            file_put_contents($tempFile, $xml);
+
+            $reporter = new CoverageReporter(100);
+            $result = $reporter->parseClover($tempFile);
+
+            expect($result['files'][0]['name'])->toBe('app/Services/MyService.php');
+
+            unlink($tempFile);
+        });
+
+        it('strips current working directory path when present', function () {
+            $currentDir = getcwd();
+            $xml = <<<XML
+<?xml version="1.0"?>
+<coverage>
+  <project timestamp="1234567890">
+    <metrics statements="100" coveredstatements="100" elements="100" coveredelements="100"/>
+    <package name="App">
+      <file name="{$currentDir}/app/Test.php">
+        <metrics statements="10" coveredstatements="10" elements="10" coveredelements="10"/>
+      </file>
+    </package>
+  </project>
+</coverage>
+XML;
+
+            $tempFile = sys_get_temp_dir().'/cwd_path_'.uniqid().'.xml';
+            file_put_contents($tempFile, $xml);
+
+            $reporter = new CoverageReporter(100);
+            $result = $reporter->parseClover($tempFile);
+
+            expect($result['files'][0]['name'])->toBe('app/Test.php');
+
+            unlink($tempFile);
+        });
+
+        it('handles complex GitHub Actions duplicate repo name scenario', function () {
+            $xml = <<<'XML'
+<?xml version="1.0"?>
+<coverage>
+  <project timestamp="1234567890">
+    <metrics statements="100" coveredstatements="100" elements="100" coveredelements="100"/>
+    <package name="App">
+      <file name="/home/runner/work/repo-name/repo-name/src/File.php">
+        <metrics statements="10" coveredstatements="10" elements="10" coveredelements="10"/>
+      </file>
+    </package>
+  </project>
+</coverage>
+XML;
+
+            $tempFile = sys_get_temp_dir().'/github_dup_repo_'.uniqid().'.xml';
+            file_put_contents($tempFile, $xml);
+
+            $reporter = new CoverageReporter(100);
+            $result = $reporter->parseClover($tempFile);
+
+            expect($result['files'][0]['name'])->toBe('src/File.php');
+
+            unlink($tempFile);
+        });
+
+        it('preserves paths that do not match any workspace pattern', function () {
+            $xml = <<<'XML'
+<?xml version="1.0"?>
+<coverage>
+  <project timestamp="1234567890">
+    <metrics statements="100" coveredstatements="100" elements="100" coveredelements="100"/>
+    <package name="App">
+      <file name="/custom/unusual/path/app/File.php">
+        <metrics statements="10" coveredstatements="10" elements="10" coveredelements="10"/>
+      </file>
+    </package>
+  </project>
+</coverage>
+XML;
+
+            $tempFile = sys_get_temp_dir().'/custom_path_'.uniqid().'.xml';
+            file_put_contents($tempFile, $xml);
+
+            $reporter = new CoverageReporter(100);
+            $result = $reporter->parseClover($tempFile);
+
+            expect($result['files'][0]['name'])->toBe('/custom/unusual/path/app/File.php');
+
+            unlink($tempFile);
         });
     });
 });
