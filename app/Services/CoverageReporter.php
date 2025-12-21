@@ -60,10 +60,7 @@ class CoverageReporter
         }
 
         $fileName = (string) $file['name'];
-        // Strip workspace path for cleaner display
-        if (str_contains($fileName, '/packages/gate/')) {
-            $fileName = substr($fileName, strpos($fileName, '/packages/gate/') + strlen('/packages/gate/'));
-        }
+        $fileName = $this->stripWorkspacePath($fileName);
 
         $fileMetrics = $this->extractMetrics($metrics);
 
@@ -80,6 +77,67 @@ class CoverageReporter
             'metrics' => $fileMetrics,
             'uncovered_lines' => $uncoveredLines,
         ];
+    }
+
+    private function stripWorkspacePath(string $fileName): string
+    {
+        // Try common CI workspace patterns
+        $patterns = [
+            '/home/runner/work/',  // GitHub Actions
+            '/workspace/',         // Generic CI
+            getcwd().'/',        // Current working directory
+        ];
+
+        foreach ($patterns as $pattern) {
+            if (str_starts_with($fileName, $pattern)) {
+                $fileName = substr($fileName, strlen($pattern));
+
+                // Handle duplicate repo/project name pattern (e.g., owner/repo/owner/repo/)
+                // This is common in GitHub Actions where workspace is /home/runner/work/repo-name/repo-name/
+                $parts = explode('/', $fileName, 3);
+                if (count($parts) >= 3 && $parts[0] === $parts[1]) {
+                    $fileName = $parts[2]; // Skip duplicate repo path
+                }
+
+                break;
+            }
+        }
+
+        // Handle deeper duplicate patterns in monorepos (e.g., packages/service/packages/service/)
+        // Look for any pattern where a path segment repeats consecutively
+        $fileName = $this->removeDuplicatePathSegments($fileName);
+
+        return $fileName;
+    }
+
+    private function removeDuplicatePathSegments(string $path): string
+    {
+        $parts = explode('/', $path);
+
+        // Try to detect and remove repeating path patterns
+        // For example: packages/my-service/packages/my-service/src -> packages/my-service/src
+        for ($patternLength = 1; $patternLength <= count($parts) / 2; $patternLength++) {
+            $totalParts = count($parts);
+
+            // Check each possible starting position
+            for ($start = 0; $start < $totalParts - $patternLength; $start++) {
+                $pattern = array_slice($parts, $start, $patternLength);
+                $nextSegment = array_slice($parts, $start + $patternLength, $patternLength);
+
+                // If we found a repeating pattern
+                if ($pattern === $nextSegment) {
+                    // Remove the first occurrence of the pattern
+                    $before = array_slice($parts, 0, $start);
+                    $after = array_slice($parts, $start + $patternLength);
+                    $parts = array_merge($before, $after);
+
+                    // Recursively check for more duplicates
+                    return $this->removeDuplicatePathSegments(implode('/', $parts));
+                }
+            }
+        }
+
+        return implode('/', $parts);
     }
 
     private function extractMetrics(SimpleXMLElement $metrics): array
