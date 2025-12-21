@@ -4,11 +4,11 @@ declare(strict_types=1);
 
 use App\GitHub\ChecksClient;
 use GuzzleHttp\Client;
+use GuzzleHttp\Exception\RequestException;
 use GuzzleHttp\Handler\MockHandler;
 use GuzzleHttp\HandlerStack;
-use GuzzleHttp\Psr7\Response;
-use GuzzleHttp\Exception\RequestException;
 use GuzzleHttp\Psr7\Request;
+use GuzzleHttp\Psr7\Response;
 
 describe('ChecksClient', function () {
     describe('extractPRNumber', function () {

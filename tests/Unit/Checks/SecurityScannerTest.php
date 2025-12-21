@@ -8,12 +8,12 @@ use App\Contracts\ProcessRunner;
 
 describe('SecurityScanner', function () {
     it('has a descriptive name', function () {
-        $scanner = new SecurityScanner();
+        $scanner = new SecurityScanner;
         expect($scanner->name())->toBe('Security Audit');
     });
 
     it('implements CheckInterface', function () {
-        $scanner = new SecurityScanner();
+        $scanner = new SecurityScanner;
         expect($scanner)->toBeInstanceOf(\App\Checks\CheckInterface::class);
     });
 

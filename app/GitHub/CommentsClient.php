@@ -69,6 +69,7 @@ class CommentsClient
             return true;
         } catch (GuzzleException $e) {
             echo "::warning::Failed to post/update PR comment: {$e->getMessage()}\n";
+
             return false;
         }
     }
@@ -106,6 +107,7 @@ class CommentsClient
         }
 
         $event = json_decode(file_get_contents($eventPath), true);
+
         return $event['pull_request']['number'] ?? null;
     }
 }

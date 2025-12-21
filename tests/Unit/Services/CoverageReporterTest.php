@@ -7,15 +7,15 @@ use App\Services\CoverageReporter;
 describe('CoverageReporter', function () {
     describe('parseClover', function () {
         it('throws exception when file not found', function () {
-            $reporter = new CoverageReporter();
+            $reporter = new CoverageReporter;
             $reporter->parseClover('/nonexistent/path.xml');
         })->throws(RuntimeException::class, 'Coverage file not found');
 
         it('throws exception when file contains invalid XML', function () {
-            $tempFile = sys_get_temp_dir() . '/invalid_xml_' . uniqid() . '.xml';
+            $tempFile = sys_get_temp_dir().'/invalid_xml_'.uniqid().'.xml';
             file_put_contents($tempFile, 'not valid xml');
 
-            $reporter = new CoverageReporter();
+            $reporter = new CoverageReporter;
             try {
                 $reporter->parseClover($tempFile);
             } finally {
@@ -25,10 +25,10 @@ describe('CoverageReporter', function () {
 
         it('throws exception when clover format is missing project metrics', function () {
             $xml = '<?xml version="1.0"?><coverage><project></project></coverage>';
-            $tempFile = sys_get_temp_dir() . '/no_metrics_' . uniqid() . '.xml';
+            $tempFile = sys_get_temp_dir().'/no_metrics_'.uniqid().'.xml';
             file_put_contents($tempFile, $xml);
 
-            $reporter = new CoverageReporter();
+            $reporter = new CoverageReporter;
             try {
                 $reporter->parseClover($tempFile);
             } finally {
@@ -54,10 +54,10 @@ describe('CoverageReporter', function () {
 </coverage>
 XML;
 
-            $tempFile = sys_get_temp_dir() . '/valid_clover_' . uniqid() . '.xml';
+            $tempFile = sys_get_temp_dir().'/valid_clover_'.uniqid().'.xml';
             file_put_contents($tempFile, $xml);
 
-            $reporter = new CoverageReporter();
+            $reporter = new CoverageReporter;
             $result = $reporter->parseClover($tempFile);
 
             expect($result['total']['statements'])->toBe(100)
@@ -84,10 +84,10 @@ XML;
 </coverage>
 XML;
 
-            $tempFile = sys_get_temp_dir() . '/no_file_metrics_' . uniqid() . '.xml';
+            $tempFile = sys_get_temp_dir().'/no_file_metrics_'.uniqid().'.xml';
             file_put_contents($tempFile, $xml);
 
-            $reporter = new CoverageReporter();
+            $reporter = new CoverageReporter;
             $result = $reporter->parseClover($tempFile);
 
             expect($result['files'][0])->toBeEmpty();
@@ -105,10 +105,10 @@ XML;
 </coverage>
 XML;
 
-            $tempFile = sys_get_temp_dir() . '/zero_stmts_' . uniqid() . '.xml';
+            $tempFile = sys_get_temp_dir().'/zero_stmts_'.uniqid().'.xml';
             file_put_contents($tempFile, $xml);
 
-            $reporter = new CoverageReporter();
+            $reporter = new CoverageReporter;
             $result = $reporter->parseClover($tempFile);
 
             expect($result['total']['coverage_percent'])->toBe(0.0);
@@ -128,7 +128,7 @@ XML;
 </coverage>
 XML;
 
-            $tempFile = sys_get_temp_dir() . '/full_coverage_' . uniqid() . '.xml';
+            $tempFile = sys_get_temp_dir().'/full_coverage_'.uniqid().'.xml';
             file_put_contents($tempFile, $xml);
 
             $reporter = new CoverageReporter(100);
@@ -164,7 +164,7 @@ XML;
 </coverage>
 XML;
 
-            $tempFile = sys_get_temp_dir() . '/low_coverage_' . uniqid() . '.xml';
+            $tempFile = sys_get_temp_dir().'/low_coverage_'.uniqid().'.xml';
             file_put_contents($tempFile, $xml);
 
             $reporter = new CoverageReporter(80);
@@ -188,8 +188,8 @@ XML;
 </coverage>
 XML;
 
-            $currentFile = sys_get_temp_dir() . '/current_' . uniqid() . '.xml';
-            $baseFile = sys_get_temp_dir() . '/base_' . uniqid() . '.xml';
+            $currentFile = sys_get_temp_dir().'/current_'.uniqid().'.xml';
+            $baseFile = sys_get_temp_dir().'/base_'.uniqid().'.xml';
             file_put_contents($currentFile, $xml);
             file_put_contents($baseFile, $xml);
 

@@ -43,7 +43,7 @@ final class SecurityCommand extends Command
     {
         $token = $this->option('token') ?: getenv('GITHUB_TOKEN') ?: null;
         $checksClient = $this->checksClient ?? new ChecksClient($token);
-        $check = $this->check ?? new SecurityScanner();
+        $check = $this->check ?? new SecurityScanner;
 
         $result = $check->run(getcwd());
 

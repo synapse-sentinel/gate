@@ -43,7 +43,7 @@ final class SyntaxCommand extends Command
     {
         $token = $this->option('token') ?: getenv('GITHUB_TOKEN') ?: null;
         $checksClient = $this->checksClient ?? new ChecksClient($token);
-        $check = $this->check ?? new PestSyntaxValidator();
+        $check = $this->check ?? new PestSyntaxValidator;
 
         $result = $check->run(getcwd());
 
