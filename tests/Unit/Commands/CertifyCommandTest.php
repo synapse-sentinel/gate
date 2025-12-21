@@ -32,9 +32,10 @@ describe('CertifyCommand', function () {
             $mock = new MockHandler([
                 new Response(201), // Individual check
                 new Response(201), // Certification check
+                new Response(201), // Certification comment
             ]);
             $httpClient = new Client(['handler' => HandlerStack::create($mock)]);
-            $checksClient = new ChecksClient('token', $httpClient, 'owner/repo', 'sha123');
+            $checksClient = new ChecksClient('token', $httpClient, 'owner/repo', 'sha123', 1);
 
             ($this->createCommand)([$passingCheck], $checksClient);
 
@@ -98,9 +99,9 @@ describe('CertifyCommand', function () {
                 ->once()
                 ->andReturn(CheckResult::pass('OK'));
 
-            $mock = new MockHandler([new Response(201), new Response(201)]);
+            $mock = new MockHandler([new Response(201), new Response(201), new Response(201)]);
             $httpClient = new Client(['handler' => HandlerStack::create($mock)]);
-            $checksClient = new ChecksClient('token', $httpClient, 'owner/repo', 'sha123');
+            $checksClient = new ChecksClient('token', $httpClient, 'owner/repo', 'sha123', 1);
 
             putenv("GITHUB_STEP_SUMMARY={$tmpFile}");
 
@@ -126,9 +127,9 @@ describe('CertifyCommand', function () {
                 ->once()
                 ->andReturn(CheckResult::pass('OK'));
 
-            $mock = new MockHandler([new Response(201), new Response(201)]);
+            $mock = new MockHandler([new Response(201), new Response(201), new Response(201)]);
             $httpClient = new Client(['handler' => HandlerStack::create($mock)]);
-            $checksClient = new ChecksClient('token', $httpClient, 'owner/repo', 'sha123');
+            $checksClient = new ChecksClient('token', $httpClient, 'owner/repo', 'sha123', 1);
 
             putenv("GITHUB_OUTPUT={$tmpFile}");
 
@@ -181,9 +182,9 @@ describe('CertifyCommand', function () {
                 ->once()
                 ->andReturn(CheckResult::pass('OK'));
 
-            $mock = new MockHandler([new Response(201), new Response(201)]);
+            $mock = new MockHandler([new Response(201), new Response(201), new Response(201)]);
             $httpClient = new Client(['handler' => HandlerStack::create($mock)]);
-            $checksClient = new ChecksClient('token', $httpClient, 'owner/repo', 'sha123');
+            $checksClient = new ChecksClient('token', $httpClient, 'owner/repo', 'sha123', 1);
 
             ($this->createCommand)([$passingCheck], $checksClient);
 
@@ -198,9 +199,9 @@ describe('CertifyCommand', function () {
                 ->once()
                 ->andReturn(CheckResult::pass('OK'));
 
-            $mock = new MockHandler([new Response(201), new Response(201)]);
+            $mock = new MockHandler([new Response(201), new Response(201), new Response(201)]);
             $httpClient = new Client(['handler' => HandlerStack::create($mock)]);
-            $checksClient = new ChecksClient('custom-token', $httpClient, 'owner/repo', 'sha123');
+            $checksClient = new ChecksClient('custom-token', $httpClient, 'owner/repo', 'sha123', 1);
 
             ($this->createCommand)([$passingCheck], $checksClient);
 
@@ -279,13 +280,14 @@ describe('CertifyCommand', function () {
                 ->andReturn(CheckResult::pass('All files valid'));
 
             $mock = new MockHandler([
-                new Response(201),
-                new Response(201),
-                new Response(201),
-                new Response(201),
+                new Response(201), // Tests check
+                new Response(201), // Security check
+                new Response(201), // Syntax check
+                new Response(201), // Certification check
+                new Response(201), // Certification comment
             ]);
             $httpClient = new Client(['handler' => HandlerStack::create($mock)]);
-            $checksClient = new ChecksClient('token', $httpClient, 'owner/repo', 'sha123');
+            $checksClient = new ChecksClient('token', $httpClient, 'owner/repo', 'sha123', 1);
 
             ($this->createCommand)([$testsCheck, $securityCheck, $syntaxCheck], $checksClient);
 
@@ -341,13 +343,14 @@ describe('CertifyCommand', function () {
                 ->andReturn(CheckResult::pass('OK'));
 
             $mock = new MockHandler([
-                new Response(201),
-                new Response(201),
-                new Response(201),
-                new Response(201),
+                new Response(201), // Tests check
+                new Response(201), // Security check
+                new Response(201), // Syntax check
+                new Response(201), // Certification check
+                new Response(201), // Certification comment
             ]);
             $httpClient = new Client(['handler' => HandlerStack::create($mock)]);
-            $checksClient = new ChecksClient('token', $httpClient, 'owner/repo', 'sha123');
+            $checksClient = new ChecksClient('token', $httpClient, 'owner/repo', 'sha123', 1);
 
             ($this->createCommand)([$testsCheck, $securityCheck, $syntaxCheck], $checksClient);
 
