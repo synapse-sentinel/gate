@@ -128,9 +128,9 @@ describe('ChecksClient', function () {
             expect($client->createCheck('Test Check'))->toBe(12345);
         });
 
-        it('returns null on API error', function () {
+        it('returns null and outputs error on API error', function () {
             $mock = new MockHandler([
-                new RequestException('Error', new Request('POST', 'test')),
+                new RequestException('Network error', new Request('POST', 'test')),
             ]);
             $handlerStack = HandlerStack::create($mock);
             $httpClient = new Client(['handler' => $handlerStack]);
@@ -142,7 +142,66 @@ describe('ChecksClient', function () {
                 sha: 'abc123',
             );
 
-            expect($client->createCheck('Test Check'))->toBeNull();
+            ob_start();
+            $result = $client->createCheck('Test Check');
+            $output = ob_get_clean();
+
+            expect($result)->toBeNull();
+            expect($output)->toContain('::error::');
+            expect($output)->toContain('Network error');
+        });
+
+        it('outputs specific error for 403 permission denied', function () {
+            $mock = new MockHandler([
+                new RequestException(
+                    'Forbidden',
+                    new Request('POST', 'test'),
+                    new Response(403, [], json_encode(['message' => 'Resource not accessible']))
+                ),
+            ]);
+            $handlerStack = HandlerStack::create($mock);
+            $httpClient = new Client(['handler' => $handlerStack]);
+
+            $client = new ChecksClient(
+                token: 'test-token',
+                client: $httpClient,
+                repo: 'owner/repo',
+                sha: 'abc123',
+            );
+
+            ob_start();
+            $client->createCheck('Test Check');
+            $output = ob_get_clean();
+
+            expect($output)->toContain('::error::');
+            expect($output)->toContain('Permission denied');
+            expect($output)->toContain('checks:write');
+        });
+
+        it('outputs specific error for 429 rate limit', function () {
+            $mock = new MockHandler([
+                new RequestException(
+                    'Too Many Requests',
+                    new Request('POST', 'test'),
+                    new Response(429, [], json_encode(['message' => 'API rate limit exceeded']))
+                ),
+            ]);
+            $handlerStack = HandlerStack::create($mock);
+            $httpClient = new Client(['handler' => $handlerStack]);
+
+            $client = new ChecksClient(
+                token: 'test-token',
+                client: $httpClient,
+                repo: 'owner/repo',
+                sha: 'abc123',
+            );
+
+            ob_start();
+            $client->createCheck('Test Check');
+            $output = ob_get_clean();
+
+            expect($output)->toContain('::error::');
+            expect($output)->toContain('Rate limit exceeded');
         });
     });
 
@@ -170,9 +229,9 @@ describe('ChecksClient', function () {
             expect($client->completeCheck(123, true, 'Passed', 'All good'))->toBeTrue();
         });
 
-        it('returns false on API error', function () {
+        it('returns false and outputs error on API error', function () {
             $mock = new MockHandler([
-                new RequestException('Error', new Request('PATCH', 'test')),
+                new RequestException('Connection timeout', new Request('PATCH', 'test')),
             ]);
             $handlerStack = HandlerStack::create($mock);
             $httpClient = new Client(['handler' => $handlerStack]);
@@ -184,7 +243,65 @@ describe('ChecksClient', function () {
                 sha: 'abc123',
             );
 
-            expect($client->completeCheck(123, false, 'Failed', 'Bad'))->toBeFalse();
+            ob_start();
+            $result = $client->completeCheck(123, false, 'Failed', 'Bad');
+            $output = ob_get_clean();
+
+            expect($result)->toBeFalse();
+            expect($output)->toContain('::error::');
+            expect($output)->toContain('Connection timeout');
+        });
+
+        it('outputs specific error for 403 permission denied', function () {
+            $mock = new MockHandler([
+                new RequestException(
+                    'Forbidden',
+                    new Request('PATCH', 'test'),
+                    new Response(403)
+                ),
+            ]);
+            $handlerStack = HandlerStack::create($mock);
+            $httpClient = new Client(['handler' => $handlerStack]);
+
+            $client = new ChecksClient(
+                token: 'test-token',
+                client: $httpClient,
+                repo: 'owner/repo',
+                sha: 'abc123',
+            );
+
+            ob_start();
+            $client->completeCheck(123, false, 'Failed', 'Bad');
+            $output = ob_get_clean();
+
+            expect($output)->toContain('::error::');
+            expect($output)->toContain('Permission denied');
+        });
+
+        it('outputs specific error for 429 rate limit', function () {
+            $mock = new MockHandler([
+                new RequestException(
+                    'Too Many Requests',
+                    new Request('PATCH', 'test'),
+                    new Response(429)
+                ),
+            ]);
+            $handlerStack = HandlerStack::create($mock);
+            $httpClient = new Client(['handler' => $handlerStack]);
+
+            $client = new ChecksClient(
+                token: 'test-token',
+                client: $httpClient,
+                repo: 'owner/repo',
+                sha: 'abc123',
+            );
+
+            ob_start();
+            $client->completeCheck(123, true, 'Passed', 'Good');
+            $output = ob_get_clean();
+
+            expect($output)->toContain('::error::');
+            expect($output)->toContain('Rate limit exceeded');
         });
     });
 
@@ -221,7 +338,7 @@ describe('ChecksClient', function () {
             expect($client->reportCheck('Test', true, 'Passed', 'Good'))->toBeTrue();
         });
 
-        it('returns false and outputs warning on API error', function () {
+        it('returns false and outputs error on API error', function () {
             $mock = new MockHandler([
                 new RequestException('Network error', new Request('POST', 'test')),
             ]);
@@ -240,7 +357,8 @@ describe('ChecksClient', function () {
             $output = ob_get_clean();
 
             expect($result)->toBeFalse();
-            expect($output)->toContain('::warning::');
+            expect($output)->toContain('::error::');
+            expect($output)->toContain('Network error');
         });
     });
 
@@ -295,9 +413,9 @@ describe('ChecksClient', function () {
             ]))->toBeTrue();
         });
 
-        it('returns false on API error', function () {
+        it('returns false and outputs error on API error', function () {
             $mock = new MockHandler([
-                new RequestException('Error', new Request('POST', 'test')),
+                new RequestException('API Error', new Request('POST', 'test')),
             ]);
             $handlerStack = HandlerStack::create($mock);
             $httpClient = new Client(['handler' => $handlerStack]);
@@ -310,7 +428,67 @@ describe('ChecksClient', function () {
                 prNumber: 42,
             );
 
-            expect($client->postCertificationComment(['Test' => 'Passed']))->toBeFalse();
+            ob_start();
+            $result = $client->postCertificationComment(['Test' => 'Passed']);
+            $output = ob_get_clean();
+
+            expect($result)->toBeFalse();
+            expect($output)->toContain('::error::');
+            expect($output)->toContain('API Error');
+        });
+
+        it('outputs specific error for 403 permission denied', function () {
+            $mock = new MockHandler([
+                new RequestException(
+                    'Forbidden',
+                    new Request('POST', 'test'),
+                    new Response(403)
+                ),
+            ]);
+            $handlerStack = HandlerStack::create($mock);
+            $httpClient = new Client(['handler' => $handlerStack]);
+
+            $client = new ChecksClient(
+                token: 'test-token',
+                client: $httpClient,
+                repo: 'owner/repo',
+                sha: 'abc123',
+                prNumber: 42,
+            );
+
+            ob_start();
+            $client->postCertificationComment(['Test' => 'Passed']);
+            $output = ob_get_clean();
+
+            expect($output)->toContain('::error::');
+            expect($output)->toContain('Permission denied');
+        });
+
+        it('outputs specific error for 429 rate limit', function () {
+            $mock = new MockHandler([
+                new RequestException(
+                    'Too Many Requests',
+                    new Request('POST', 'test'),
+                    new Response(429)
+                ),
+            ]);
+            $handlerStack = HandlerStack::create($mock);
+            $httpClient = new Client(['handler' => $handlerStack]);
+
+            $client = new ChecksClient(
+                token: 'test-token',
+                client: $httpClient,
+                repo: 'owner/repo',
+                sha: 'abc123',
+                prNumber: 42,
+            );
+
+            ob_start();
+            $client->postCertificationComment(['Test' => 'Passed']);
+            $output = ob_get_clean();
+
+            expect($output)->toContain('::error::');
+            expect($output)->toContain('Rate limit exceeded');
         });
     });
 });
