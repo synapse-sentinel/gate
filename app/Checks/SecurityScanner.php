@@ -26,15 +26,33 @@ final class SecurityScanner implements CheckInterface
             timeout: 60,
         );
 
-        $data = json_decode($result->output, true) ?? [];
+        $data = json_decode($result->output, true);
 
-        if ($result->successful && empty($data['advisories'] ?? [])) {
+        // Handle JSON parsing errors
+        if ($data === null) {
+            return CheckResult::fail(
+                'Failed to parse composer audit output',
+                ['Raw output: '.substr($result->output, 0, 200)]
+            );
+        }
+
+        // Handle composer errors
+        if (isset($data['error'])) {
+            return CheckResult::fail(
+                'Composer audit error: '.$data['error'],
+                []
+            );
+        }
+
+        // Check for vulnerabilities
+        $advisories = $data['advisories'] ?? [];
+
+        if (empty($advisories)) {
             return CheckResult::pass('No security vulnerabilities found');
         }
 
-        $advisories = $data['advisories'] ?? [];
+        // Parse vulnerabilities
         $vulnerabilities = [];
-
         foreach ($advisories as $package => $issues) {
             foreach ($issues as $issue) {
                 $cve = $issue['cve'] ?? 'N/A';
