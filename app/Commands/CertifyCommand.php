@@ -61,8 +61,8 @@ final class CertifyCommand extends Command
 
         $checks = $this->checks ?? [
             new TestRunner($coverageThreshold),
-            new SecurityScanner(),
-            new PestSyntaxValidator(),
+            new SecurityScanner,
+            new PestSyntaxValidator,
         ];
 
         $stopOnFailure = $this->option('stop-on-failure');
@@ -100,7 +100,7 @@ final class CertifyCommand extends Command
         // Report Sentinel Certification (last, after all checks)
         $title = $verdict->isApproved()
             ? 'All checks passed'
-            : count($failures) . ' check(s) failed';
+            : count($failures).' check(s) failed';
 
         $checksClient->reportCheck(
             name: Branding::CERTIFICATION,
@@ -117,6 +117,15 @@ final class CertifyCommand extends Command
         // Output verdict
         if ($compact) {
             $this->renderCompactOutput($compactResults, $verdict);
+
+            // Still show failure details in compact mode when checks fail
+            if (! $verdict->isApproved() && ! empty($failureRows)) {
+                echo "\n";
+                table(
+                    headers: ['Check', 'Issue'],
+                    rows: $failureRows
+                );
+            }
         } elseif ($verdict->isApproved()) {
             info('');
             info('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
@@ -206,7 +215,7 @@ final class CertifyCommand extends Command
         }
 
         $status = $verdict->isApproved() ? '✓ APPROVED' : '✗ REJECTED';
-        $line = implode('  ', $parts) . "  │  {$status}";
+        $line = implode('  ', $parts)."  │  {$status}";
 
         if ($verdict->isApproved()) {
             info($line);
