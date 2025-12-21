@@ -440,4 +440,84 @@ OUTPUT,
         expect($fileDetails)->toHaveCount(5);
         expect($result->details)->toContain('  ...and 2 more files');
     });
+
+    it('detects when Pest rounds coverage to threshold but individual files are below', function () {
+        $mockRunner = mock(ProcessRunner::class);
+        $mockRunner->shouldReceive('run')
+            ->once()
+            ->andReturn(new ProcessResult(
+                successful: true,  // Pest considers 99.95% rounded to 100% as passing
+                output: <<<'OUTPUT'
+Tests:  15 passed
+  App/Services/FooService .............. 99.5%
+  App/Services/BarService .............. 99.8%
+  Total:  100.0%
+OUTPUT,
+            ));
+
+        $runner = new TestRunner(
+            coverageThreshold: 100,
+            parser: new PestOutputParser,
+            processRunner: $mockRunner,
+        );
+
+        $result = $runner->run('/tmp');
+
+        expect($result->passed)->toBeTrue()
+            ->and($result->message)->toContain('99.65% (rounds to 100%, but some files below threshold)');
+    });
+
+    it('shows normal message when all files meet threshold without rounding issues', function () {
+        $mockRunner = mock(ProcessRunner::class);
+        $mockRunner->shouldReceive('run')
+            ->once()
+            ->andReturn(new ProcessResult(
+                successful: true,
+                output: <<<'OUTPUT'
+Tests:  15 passed
+  App/Services/FooService .............. 100.0%
+  App/Services/BarService .............. 100.0%
+  Total:  100.0%
+OUTPUT,
+            ));
+
+        $runner = new TestRunner(
+            coverageThreshold: 100,
+            parser: new PestOutputParser,
+            processRunner: $mockRunner,
+        );
+
+        $result = $runner->run('/tmp');
+
+        expect($result->passed)->toBeTrue()
+            ->and($result->message)->toBe('15 tests, 100% coverage')
+            ->and($result->message)->not->toContain('rounds to');
+    });
+
+    it('does not show rounding warning when threshold is less than 100', function () {
+        $mockRunner = mock(ProcessRunner::class);
+        $mockRunner->shouldReceive('run')
+            ->once()
+            ->andReturn(new ProcessResult(
+                successful: true,
+                output: <<<'OUTPUT'
+Tests:  15 passed
+  App/Services/FooService .............. 89.5%
+  App/Services/BarService .............. 90.8%
+  Total:  90.0%
+OUTPUT,
+            ));
+
+        $runner = new TestRunner(
+            coverageThreshold: 90,
+            parser: new PestOutputParser,
+            processRunner: $mockRunner,
+        );
+
+        $result = $runner->run('/tmp');
+
+        expect($result->passed)->toBeTrue()
+            ->and($result->message)->toBe('15 tests, 90% coverage')
+            ->and($result->message)->not->toContain('rounds to');
+    });
 });

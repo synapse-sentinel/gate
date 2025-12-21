@@ -93,9 +93,19 @@ final class TestRunner implements CheckInterface
         $tests = $this->parser->parseTestCount($output);
         $coverage = $this->parser->parseCoverage($output);
 
-        return $coverage !== null
-            ? "{$tests} tests, {$coverage}% coverage"
-            : "{$tests} tests passed";
+        if ($coverage === null) {
+            return "{$tests} tests passed";
+        }
+
+        // Check for rounding discrepancy (e.g., 99.95% rounds to 100% but files are below threshold)
+        if ($this->parser->hasRoundingDiscrepancy($output, (float) $this->coverageThreshold)) {
+            $actualCoverage = $this->parser->calculateActualCoverage($output);
+            if ($actualCoverage !== null) {
+                return "{$tests} tests, {$actualCoverage}% (rounds to {$coverage}%, but some files below threshold)";
+            }
+        }
+
+        return "{$tests} tests, {$coverage}% coverage";
     }
 
     private function parseFailureMessage(string $output): string

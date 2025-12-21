@@ -220,4 +220,125 @@ OUTPUT;
             expect($parser->parseFileCoverage($output, 100.0))->toBeEmpty();
         });
     });
+
+    describe('hasRoundingDiscrepancy', function () {
+        it('detects rounding discrepancy when total is 100% but files are below threshold', function () {
+            $parser = new PestOutputParser;
+            $output = <<<'OUTPUT'
+  App/Services/FooService .............. 99.5%
+  App/Services/BarService .............. 99.8%
+  Total:  100.0%
+OUTPUT;
+            expect($parser->hasRoundingDiscrepancy($output, 100.0))->toBeTrue();
+        });
+
+        it('returns false when all files meet threshold', function () {
+            $parser = new PestOutputParser;
+            $output = <<<'OUTPUT'
+  App/Services/FooService .............. 100.0%
+  App/Services/BarService .............. 100.0%
+  Total:  100.0%
+OUTPUT;
+            expect($parser->hasRoundingDiscrepancy($output, 100.0))->toBeFalse();
+        });
+
+        it('returns false when threshold is not 100', function () {
+            $parser = new PestOutputParser;
+            $output = <<<'OUTPUT'
+  App/Services/FooService .............. 89.5%
+  App/Services/BarService .............. 89.8%
+  Total:  90.0%
+OUTPUT;
+            expect($parser->hasRoundingDiscrepancy($output, 90.0))->toBeFalse();
+        });
+
+        it('returns false when total coverage is not 100%', function () {
+            $parser = new PestOutputParser;
+            $output = <<<'OUTPUT'
+  App/Services/FooService .............. 95.5%
+  App/Services/BarService .............. 95.8%
+  Total:  95.0%
+OUTPUT;
+            expect($parser->hasRoundingDiscrepancy($output, 100.0))->toBeFalse();
+        });
+
+        it('returns false when no coverage output', function () {
+            $parser = new PestOutputParser;
+            $output = 'Tests:  5 passed';
+
+            expect($parser->hasRoundingDiscrepancy($output, 100.0))->toBeFalse();
+        });
+
+        it('returns false when total coverage is null', function () {
+            $parser = new PestOutputParser;
+            $output = <<<'OUTPUT'
+Tests:  5 passed
+  App/Services/FooService .............. 99.5%
+OUTPUT;
+            expect($parser->hasRoundingDiscrepancy($output, 100.0))->toBeFalse();
+        });
+    });
+
+    describe('calculateActualCoverage', function () {
+        it('calculates average coverage from file breakdown', function () {
+            $parser = new PestOutputParser;
+            $output = <<<'OUTPUT'
+  App/Services/FooService .............. 99.5%
+  App/Services/BarService .............. 99.8%
+  Total:  100.0%
+OUTPUT;
+            // Average: (99.5 + 99.8) / 2 = 99.65, rounded to 99.65
+            expect($parser->calculateActualCoverage($output))->toBe(99.65);
+        });
+
+        it('excludes Total line from calculation', function () {
+            $parser = new PestOutputParser;
+            $output = <<<'OUTPUT'
+  App/Services/FooService .............. 90.0%
+  App/Services/BarService .............. 80.0%
+  Total:  85.0%
+OUTPUT;
+            // Average: (90.0 + 80.0) / 2 = 85.0 (not 255.0 / 3)
+            expect($parser->calculateActualCoverage($output))->toBe(85.0);
+        });
+
+        it('returns null when no files found', function () {
+            $parser = new PestOutputParser;
+            $output = 'Tests:  5 passed';
+
+            expect($parser->calculateActualCoverage($output))->toBeNull();
+        });
+
+        it('handles single file', function () {
+            $parser = new PestOutputParser;
+            $output = <<<'OUTPUT'
+  App/Services/FooService .............. 95.5%
+  Total:  95.5%
+OUTPUT;
+            expect($parser->calculateActualCoverage($output))->toBe(95.5);
+        });
+
+        it('rounds to 2 decimal places', function () {
+            $parser = new PestOutputParser;
+            $output = <<<'OUTPUT'
+  App/Services/Service1 .............. 99.1%
+  App/Services/Service2 .............. 99.2%
+  App/Services/Service3 .............. 99.3%
+  Total:  99.2%
+OUTPUT;
+            // Average: (99.1 + 99.2 + 99.3) / 3 = 99.2
+            expect($parser->calculateActualCoverage($output))->toBe(99.2);
+        });
+
+        it('excludes total line with different casing', function () {
+            $parser = new PestOutputParser;
+            $output = <<<'OUTPUT'
+  App/Services/FooService .............. 90.0%
+  App/Services/BarService .............. 80.0%
+  total ................................ 85.0%
+OUTPUT;
+            // Average: (90.0 + 80.0) / 2 = 85.0 (not including lowercase 'total')
+            expect($parser->calculateActualCoverage($output))->toBe(85.0);
+        });
+    });
 });
