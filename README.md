@@ -13,12 +13,26 @@ on: [pull_request]
 jobs:
   gate:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write      # Required for auto-merge
+      checks: write        # Required for check status
+      pull-requests: write # Required for PR comments
     steps:
       - uses: actions/checkout@v4
       - uses: synapse-sentinel/gate@v1
         with:
           coverage-threshold: 100
 ```
+
+### Required Permissions
+
+The Gate action requires specific workflow permissions to function properly:
+
+- `contents: write` - Enables auto-merge on approved PRs
+- `checks: write` - Allows creating check runs with status
+- `pull-requests: write` - Enables posting coverage reports and verdict comments
+
+Without these permissions, the action will run successfully but features will silently fail (e.g., no PR comments, no auto-merge).
 
 ## What It Checks
 
