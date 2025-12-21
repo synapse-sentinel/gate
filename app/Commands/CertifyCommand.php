@@ -117,6 +117,15 @@ final class CertifyCommand extends Command
         // Output verdict
         if ($compact) {
             $this->renderCompactOutput($compactResults, $verdict);
+
+            // Still show failure details in compact mode when checks fail
+            if (! $verdict->isApproved() && ! empty($failureRows)) {
+                echo "\n";
+                table(
+                    headers: ['Check', 'Issue'],
+                    rows: $failureRows
+                );
+            }
         } elseif ($verdict->isApproved()) {
             info('');
             info('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');

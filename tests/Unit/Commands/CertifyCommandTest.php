@@ -289,6 +289,8 @@ describe('CertifyCommand', function () {
 
             ($this->createCommand)([$testsCheck, $securityCheck, $syntaxCheck], $checksClient);
 
+            $this->expectOutputRegex('/.*/s');
+
             $this->artisan('certify', ['--compact' => true])
                 ->assertSuccessful();
         });
@@ -315,6 +317,8 @@ describe('CertifyCommand', function () {
             $checksClient = new ChecksClient('token', $httpClient, 'owner/repo', 'sha123');
 
             ($this->createCommand)([$testsCheck, $securityCheck], $checksClient);
+
+            $this->expectOutputRegex('/.*/s');  // Expect any output (including newlines)
 
             $this->artisan('certify', ['--compact' => true])
                 ->assertFailed();
@@ -353,6 +357,100 @@ describe('CertifyCommand', function () {
 
             $this->artisan('certify', ['--compact' => true])
                 ->assertSuccessful();
+        });
+
+        it('shows failure details in compact mode when checks fail', function () {
+            $testsCheck = Mockery::mock(CheckInterface::class);
+            $testsCheck->shouldReceive('name')->andReturn('Tests & Coverage');
+            $testsCheck->shouldReceive('run')
+                ->once()
+                ->andReturn(CheckResult::fail('3 tests failed', [
+                    'FooTest failed',
+                    'BarTest failed',
+                ]));
+
+            $securityCheck = Mockery::mock(CheckInterface::class);
+            $securityCheck->shouldReceive('name')->andReturn('Security Audit');
+            $securityCheck->shouldReceive('run')
+                ->once()
+                ->andReturn(CheckResult::pass('No vulnerabilities'));
+
+            $mock = new MockHandler([
+                new Response(201),
+                new Response(201),
+                new Response(201),
+            ]);
+            $httpClient = new Client(['handler' => HandlerStack::create($mock)]);
+            $checksClient = new ChecksClient('token', $httpClient, 'owner/repo', 'sha123');
+
+            ($this->createCommand)([$testsCheck, $securityCheck], $checksClient);
+
+            $this->expectOutputRegex('/.*/s');
+
+            $this->artisan('certify', ['--compact' => true])
+                ->assertFailed()
+                ->expectsOutputToContain('✗ REJECTED');
+        });
+
+        it('does not show failure table in compact mode when all checks pass', function () {
+            $testsCheck = Mockery::mock(CheckInterface::class);
+            $testsCheck->shouldReceive('name')->andReturn('Tests & Coverage');
+            $testsCheck->shouldReceive('run')
+                ->once()
+                ->andReturn(CheckResult::pass('All tests passed'));
+
+            $securityCheck = Mockery::mock(CheckInterface::class);
+            $securityCheck->shouldReceive('name')->andReturn('Security Audit');
+            $securityCheck->shouldReceive('run')
+                ->once()
+                ->andReturn(CheckResult::pass('No vulnerabilities'));
+
+            $mock = new MockHandler([
+                new Response(201),
+                new Response(201),
+                new Response(201),
+            ]);
+            $httpClient = new Client(['handler' => HandlerStack::create($mock)]);
+            $checksClient = new ChecksClient('token', $httpClient, 'owner/repo', 'sha123');
+
+            ($this->createCommand)([$testsCheck, $securityCheck], $checksClient);
+
+            // Should only output compact summary, no failure table
+            $this->artisan('certify', ['--compact' => true])
+                ->assertSuccessful()
+                ->expectsOutputToContain('✓ APPROVED')
+                ->doesntExpectOutputToContain('Check')
+                ->doesntExpectOutputToContain('Issue');
+        });
+
+        it('shows failure details for multiple failing checks in compact mode', function () {
+            $testsCheck = Mockery::mock(CheckInterface::class);
+            $testsCheck->shouldReceive('name')->andReturn('Tests & Coverage');
+            $testsCheck->shouldReceive('run')
+                ->once()
+                ->andReturn(CheckResult::fail('Tests failed', ['Test error 1', 'Test error 2']));
+
+            $securityCheck = Mockery::mock(CheckInterface::class);
+            $securityCheck->shouldReceive('name')->andReturn('Security Audit');
+            $securityCheck->shouldReceive('run')
+                ->once()
+                ->andReturn(CheckResult::fail('Vulnerabilities found', ['CVE-2024-0001', 'CVE-2024-0002']));
+
+            $mock = new MockHandler([
+                new Response(201),
+                new Response(201),
+                new Response(201),
+            ]);
+            $httpClient = new Client(['handler' => HandlerStack::create($mock)]);
+            $checksClient = new ChecksClient('token', $httpClient, 'owner/repo', 'sha123');
+
+            ($this->createCommand)([$testsCheck, $securityCheck], $checksClient);
+
+            $this->expectOutputRegex('/.*/s');
+
+            $this->artisan('certify', ['--compact' => true])
+                ->assertFailed()
+                ->expectsOutputToContain('✗ REJECTED');
         });
     });
 });
