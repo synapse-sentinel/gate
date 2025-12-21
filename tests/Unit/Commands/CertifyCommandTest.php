@@ -385,10 +385,11 @@ describe('CertifyCommand', function () {
 
             ($this->createCommand)([$testsCheck, $securityCheck], $checksClient);
 
-            $this->expectOutputRegex('/[\s\S]*/');
+            $this->expectOutputRegex('/.*/s');
 
             $this->artisan('certify', ['--compact' => true])
-                ->assertFailed();
+                ->assertFailed()
+                ->expectsOutputToContain('✗ REJECTED');
         });
 
         it('does not show failure table in compact mode when all checks pass', function () {
@@ -445,10 +446,11 @@ describe('CertifyCommand', function () {
 
             ($this->createCommand)([$testsCheck, $securityCheck], $checksClient);
 
-            $this->expectOutputRegex('/[\s\S]*/');
+            $this->expectOutputRegex('/.*/s');
 
             $this->artisan('certify', ['--compact' => true])
-                ->assertFailed();
+                ->assertFailed()
+                ->expectsOutputToContain('✗ REJECTED');
         });
     });
 });
