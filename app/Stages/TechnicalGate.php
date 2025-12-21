@@ -10,7 +10,7 @@ use App\Verdict;
 final class TechnicalGate
 {
     /**
-     * @param array<CheckInterface> $checks
+     * @param  array<CheckInterface>  $checks
      */
     public function __construct(
         private readonly array $checks,

@@ -8,7 +8,7 @@ use App\Services\SymfonyProcessRunner;
 describe('SymfonyProcessRunner', function () {
     describe('run', function () {
         it('returns successful result for successful command', function () {
-            $runner = new SymfonyProcessRunner();
+            $runner = new SymfonyProcessRunner;
             $result = $runner->run(['echo', 'hello'], sys_get_temp_dir());
 
             expect($result)->toBeInstanceOf(ProcessResult::class);
@@ -18,7 +18,7 @@ describe('SymfonyProcessRunner', function () {
         });
 
         it('returns failed result for failing command', function () {
-            $runner = new SymfonyProcessRunner();
+            $runner = new SymfonyProcessRunner;
             $result = $runner->run(['false'], sys_get_temp_dir());
 
             expect($result)->toBeInstanceOf(ProcessResult::class);
@@ -27,7 +27,7 @@ describe('SymfonyProcessRunner', function () {
         });
 
         it('captures stderr in output', function () {
-            $runner = new SymfonyProcessRunner();
+            $runner = new SymfonyProcessRunner;
             $result = $runner->run(['ls', '/nonexistent_directory_12345'], sys_get_temp_dir());
 
             expect($result->successful)->toBeFalse();
@@ -36,7 +36,7 @@ describe('SymfonyProcessRunner', function () {
 
         it('respects working directory', function () {
             $tmpDir = sys_get_temp_dir();
-            $runner = new SymfonyProcessRunner();
+            $runner = new SymfonyProcessRunner;
             $result = $runner->run(['pwd'], $tmpDir);
 
             expect($result->successful)->toBeTrue();
@@ -45,7 +45,7 @@ describe('SymfonyProcessRunner', function () {
         });
 
         it('applies timeout parameter', function () {
-            $runner = new SymfonyProcessRunner();
+            $runner = new SymfonyProcessRunner;
             // This should complete quickly, we're just testing the timeout parameter is accepted
             $result = $runner->run(['echo', 'fast'], sys_get_temp_dir(), timeout: 5);
 

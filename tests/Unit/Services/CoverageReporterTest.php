@@ -7,15 +7,15 @@ use App\Services\CoverageReporter;
 describe('CoverageReporter', function () {
     describe('parseClover', function () {
         it('throws exception when file not found', function () {
-            $reporter = new CoverageReporter();
+            $reporter = new CoverageReporter;
             $reporter->parseClover('/nonexistent/path.xml');
         })->throws(RuntimeException::class, 'Coverage file not found');
 
         it('throws exception when file contains invalid XML', function () {
-            $tempFile = sys_get_temp_dir() . '/invalid_xml_' . uniqid() . '.xml';
+            $tempFile = sys_get_temp_dir().'/invalid_xml_'.uniqid().'.xml';
             file_put_contents($tempFile, 'not valid xml');
 
-            $reporter = new CoverageReporter();
+            $reporter = new CoverageReporter;
             try {
                 $reporter->parseClover($tempFile);
             } finally {
@@ -25,10 +25,10 @@ describe('CoverageReporter', function () {
 
         it('throws exception when clover format is missing project metrics', function () {
             $xml = '<?xml version="1.0"?><coverage><project></project></coverage>';
-            $tempFile = sys_get_temp_dir() . '/no_metrics_' . uniqid() . '.xml';
+            $tempFile = sys_get_temp_dir().'/no_metrics_'.uniqid().'.xml';
             file_put_contents($tempFile, $xml);
 
-            $reporter = new CoverageReporter();
+            $reporter = new CoverageReporter;
             try {
                 $reporter->parseClover($tempFile);
             } finally {
@@ -54,10 +54,10 @@ describe('CoverageReporter', function () {
 </coverage>
 XML;
 
-            $tempFile = sys_get_temp_dir() . '/valid_clover_' . uniqid() . '.xml';
+            $tempFile = sys_get_temp_dir().'/valid_clover_'.uniqid().'.xml';
             file_put_contents($tempFile, $xml);
 
-            $reporter = new CoverageReporter();
+            $reporter = new CoverageReporter;
             $result = $reporter->parseClover($tempFile);
 
             expect($result['total']['statements'])->toBe(100)
@@ -70,7 +70,7 @@ XML;
             unlink($tempFile);
         });
 
-        it('handles file without metrics', function () {
+        it('skips files without metrics entirely', function () {
             $xml = <<<'XML'
 <?xml version="1.0"?>
 <coverage>
@@ -84,13 +84,46 @@ XML;
 </coverage>
 XML;
 
-            $tempFile = sys_get_temp_dir() . '/no_file_metrics_' . uniqid() . '.xml';
+            $tempFile = sys_get_temp_dir().'/no_file_metrics_'.uniqid().'.xml';
             file_put_contents($tempFile, $xml);
 
-            $reporter = new CoverageReporter();
+            $reporter = new CoverageReporter;
             $result = $reporter->parseClover($tempFile);
 
-            expect($result['files'][0])->toBeEmpty();
+            expect($result['files'])->toBeEmpty();
+
+            unlink($tempFile);
+        });
+
+        it('includes only files with metrics when mixed with files without', function () {
+            $xml = <<<'XML'
+<?xml version="1.0"?>
+<coverage>
+  <project timestamp="1234567890">
+    <metrics statements="100" coveredstatements="80" elements="120" coveredelements="96"/>
+    <package name="App">
+      <file name="/path/to/NoMetrics.php">
+      </file>
+      <file name="/path/to/WithMetrics.php">
+        <metrics statements="50" coveredstatements="40" elements="60" coveredelements="48"/>
+        <line num="10" type="stmt" count="1"/>
+      </file>
+      <file name="/path/to/AnotherNoMetrics.php">
+      </file>
+    </package>
+  </project>
+</coverage>
+XML;
+
+            $tempFile = sys_get_temp_dir().'/mixed_metrics_'.uniqid().'.xml';
+            file_put_contents($tempFile, $xml);
+
+            $reporter = new CoverageReporter;
+            $result = $reporter->parseClover($tempFile);
+
+            expect($result['files'])->toHaveCount(1)
+                ->and($result['files'][0]['name'])->toBe('/path/to/WithMetrics.php')
+                ->and($result['files'][0]['metrics']['statements'])->toBe(50);
 
             unlink($tempFile);
         });
@@ -105,10 +138,10 @@ XML;
 </coverage>
 XML;
 
-            $tempFile = sys_get_temp_dir() . '/zero_stmts_' . uniqid() . '.xml';
+            $tempFile = sys_get_temp_dir().'/zero_stmts_'.uniqid().'.xml';
             file_put_contents($tempFile, $xml);
 
-            $reporter = new CoverageReporter();
+            $reporter = new CoverageReporter;
             $result = $reporter->parseClover($tempFile);
 
             expect($result['total']['coverage_percent'])->toBe(0.0);
@@ -128,7 +161,7 @@ XML;
 </coverage>
 XML;
 
-            $tempFile = sys_get_temp_dir() . '/full_coverage_' . uniqid() . '.xml';
+            $tempFile = sys_get_temp_dir().'/full_coverage_'.uniqid().'.xml';
             file_put_contents($tempFile, $xml);
 
             $reporter = new CoverageReporter(100);
@@ -164,7 +197,7 @@ XML;
 </coverage>
 XML;
 
-            $tempFile = sys_get_temp_dir() . '/low_coverage_' . uniqid() . '.xml';
+            $tempFile = sys_get_temp_dir().'/low_coverage_'.uniqid().'.xml';
             file_put_contents($tempFile, $xml);
 
             $reporter = new CoverageReporter(80);
@@ -188,8 +221,8 @@ XML;
 </coverage>
 XML;
 
-            $currentFile = sys_get_temp_dir() . '/current_' . uniqid() . '.xml';
-            $baseFile = sys_get_temp_dir() . '/base_' . uniqid() . '.xml';
+            $currentFile = sys_get_temp_dir().'/current_'.uniqid().'.xml';
+            $baseFile = sys_get_temp_dir().'/base_'.uniqid().'.xml';
             file_put_contents($currentFile, $xml);
             file_put_contents($baseFile, $xml);
 

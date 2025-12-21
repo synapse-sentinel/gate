@@ -14,7 +14,7 @@ use GuzzleHttp\Psr7\Response;
 beforeEach(function () {
     // Helper to create a command with mocks
     $this->createCommand = function (array $checks, ChecksClient $checksClient) {
-        $command = new CertifyCommand();
+        $command = new CertifyCommand;
         $command->withMocks($checks, $checksClient);
         app()->singleton(CertifyCommand::class, fn () => $command);
     };

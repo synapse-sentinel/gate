@@ -29,7 +29,7 @@ describe('TestRunner', function () {
 
         $runner = new TestRunner(
             coverageThreshold: 100,
-            parser: new PestOutputParser(),
+            parser: new PestOutputParser,
             processRunner: $mockRunner,
         );
 
@@ -57,7 +57,7 @@ OUTPUT,
 
         $runner = new TestRunner(
             coverageThreshold: 100,
-            parser: new PestOutputParser(),
+            parser: new PestOutputParser,
             processRunner: $mockRunner,
         );
 
@@ -79,7 +79,7 @@ OUTPUT,
 
         $runner = new TestRunner(
             coverageThreshold: 100,
-            parser: new PestOutputParser(),
+            parser: new PestOutputParser,
             processRunner: $mockRunner,
         );
 
@@ -111,7 +111,7 @@ OUTPUT,
 
         $runner = new TestRunner(
             coverageThreshold: 100,
-            parser: new PestOutputParser(),
+            parser: new PestOutputParser,
             processRunner: $mockRunner,
         );
 
@@ -136,7 +136,7 @@ OUTPUT,
 
         $runner = new TestRunner(
             coverageThreshold: 80,
-            parser: new PestOutputParser(),
+            parser: new PestOutputParser,
             processRunner: $mockRunner,
         );
 
@@ -154,7 +154,7 @@ OUTPUT,
 
         $runner = new TestRunner(
             coverageThreshold: 100,
-            parser: new PestOutputParser(),
+            parser: new PestOutputParser,
             processRunner: $mockRunner,
         );
 
@@ -182,7 +182,7 @@ OUTPUT,
 
         $runner = new TestRunner(
             coverageThreshold: 100,
-            parser: new PestOutputParser(),
+            parser: new PestOutputParser,
             processRunner: $mockRunner,
         );
 
@@ -213,7 +213,7 @@ OUTPUT,
 
             $runner = new TestRunner(
                 coverageThreshold: 100,
-                parser: new PestOutputParser(),
+                parser: new PestOutputParser,
                 processRunner: $mockRunner,
             );
 
@@ -235,7 +235,7 @@ OUTPUT,
 
             $runner = new TestRunner(
                 coverageThreshold: 100,
-                parser: new PestOutputParser(),
+                parser: new PestOutputParser,
                 processRunner: $mockRunner,
             );
 
@@ -249,9 +249,9 @@ OUTPUT,
             putenv('GITHUB_TOKEN=');
 
             // Create a temp coverage.xml to pass the file_exists check
-            $tempDir = sys_get_temp_dir() . '/test_coverage_' . uniqid();
+            $tempDir = sys_get_temp_dir().'/test_coverage_'.uniqid();
             mkdir($tempDir);
-            file_put_contents($tempDir . '/coverage.xml', '<?xml version="1.0"?><coverage><project><metrics/></project></coverage>');
+            file_put_contents($tempDir.'/coverage.xml', '<?xml version="1.0"?><coverage><project><metrics/></project></coverage>');
 
             $mockRunner = mock(ProcessRunner::class);
             $mockRunner->shouldReceive('run')
@@ -263,7 +263,7 @@ OUTPUT,
 
             $runner = new TestRunner(
                 coverageThreshold: 100,
-                parser: new PestOutputParser(),
+                parser: new PestOutputParser,
                 processRunner: $mockRunner,
             );
 
@@ -271,7 +271,7 @@ OUTPUT,
             expect($result->passed)->toBeTrue();
 
             // Cleanup
-            unlink($tempDir . '/coverage.xml');
+            unlink($tempDir.'/coverage.xml');
             rmdir($tempDir);
         });
 
@@ -279,9 +279,9 @@ OUTPUT,
             putenv('COVERAGE_COMMENT=true');
 
             // Create temp dir with coverage.xml
-            $tempDir = sys_get_temp_dir() . '/test_coverage_di_' . uniqid();
+            $tempDir = sys_get_temp_dir().'/test_coverage_di_'.uniqid();
             mkdir($tempDir);
-            file_put_contents($tempDir . '/coverage.xml', '<?xml version="1.0"?><coverage><project><metrics statements="100" coveredstatements="100" elements="100" coveredelements="100"/></project></coverage>');
+            file_put_contents($tempDir.'/coverage.xml', '<?xml version="1.0"?><coverage><project><metrics statements="100" coveredstatements="100" elements="100" coveredelements="100"/></project></coverage>');
 
             $mockRunner = mock(ProcessRunner::class);
             $mockRunner->shouldReceive('run')
@@ -299,13 +299,13 @@ OUTPUT,
             // Mock CoverageReporter
             $mockReporter = mock(\App\Services\CoverageReporter::class);
             $mockReporter->shouldReceive('generatePRComment')
-                ->with($tempDir . '/coverage.xml')
+                ->with($tempDir.'/coverage.xml')
                 ->once()
                 ->andReturn('Coverage: 100%');
 
             $runner = new TestRunner(
                 coverageThreshold: 100,
-                parser: new PestOutputParser(),
+                parser: new PestOutputParser,
                 processRunner: $mockRunner,
             );
 
@@ -316,7 +316,7 @@ OUTPUT,
             expect($result->passed)->toBeTrue();
 
             // Cleanup
-            unlink($tempDir . '/coverage.xml');
+            unlink($tempDir.'/coverage.xml');
             rmdir($tempDir);
         });
 
@@ -324,9 +324,9 @@ OUTPUT,
             putenv('COVERAGE_COMMENT=true');
 
             // Create temp dir with coverage.xml
-            $tempDir = sys_get_temp_dir() . '/test_coverage_unavail_' . uniqid();
+            $tempDir = sys_get_temp_dir().'/test_coverage_unavail_'.uniqid();
             mkdir($tempDir);
-            file_put_contents($tempDir . '/coverage.xml', '<?xml version="1.0"?><coverage><project><metrics/></project></coverage>');
+            file_put_contents($tempDir.'/coverage.xml', '<?xml version="1.0"?><coverage><project><metrics/></project></coverage>');
 
             $mockRunner = mock(ProcessRunner::class);
             $mockRunner->shouldReceive('run')
@@ -345,7 +345,7 @@ OUTPUT,
 
             $runner = new TestRunner(
                 coverageThreshold: 100,
-                parser: new PestOutputParser(),
+                parser: new PestOutputParser,
                 processRunner: $mockRunner,
             );
 
@@ -356,7 +356,7 @@ OUTPUT,
             expect($result->passed)->toBeTrue();
 
             // Cleanup
-            unlink($tempDir . '/coverage.xml');
+            unlink($tempDir.'/coverage.xml');
             rmdir($tempDir);
         });
 
@@ -364,9 +364,9 @@ OUTPUT,
             putenv('COVERAGE_COMMENT=true');
 
             // Create temp dir with coverage.xml
-            $tempDir = sys_get_temp_dir() . '/test_coverage_error_' . uniqid();
+            $tempDir = sys_get_temp_dir().'/test_coverage_error_'.uniqid();
             mkdir($tempDir);
-            file_put_contents($tempDir . '/coverage.xml', '<?xml version="1.0"?><coverage><project><metrics statements="100" coveredstatements="100" elements="100" coveredelements="100"/></project></coverage>');
+            file_put_contents($tempDir.'/coverage.xml', '<?xml version="1.0"?><coverage><project><metrics statements="100" coveredstatements="100" elements="100" coveredelements="100"/></project></coverage>');
 
             $mockRunner = mock(ProcessRunner::class);
             $mockRunner->shouldReceive('run')
@@ -387,7 +387,7 @@ OUTPUT,
 
             $runner = new TestRunner(
                 coverageThreshold: 100,
-                parser: new PestOutputParser(),
+                parser: new PestOutputParser,
                 processRunner: $mockRunner,
             );
 
@@ -401,7 +401,7 @@ OUTPUT,
                 ->and($output)->toContain('::debug::Coverage comment failed');
 
             // Cleanup
-            unlink($tempDir . '/coverage.xml');
+            unlink($tempDir.'/coverage.xml');
             rmdir($tempDir);
         });
     });
@@ -428,7 +428,7 @@ OUTPUT,
 
         $runner = new TestRunner(
             coverageThreshold: 100,
-            parser: new PestOutputParser(),
+            parser: new PestOutputParser,
             processRunner: $mockRunner,
         );
 

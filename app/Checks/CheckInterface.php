@@ -7,5 +7,6 @@ namespace App\Checks;
 interface CheckInterface
 {
     public function name(): string;
+
     public function run(string $workingDirectory): CheckResult;
 }

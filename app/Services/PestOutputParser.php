@@ -36,7 +36,7 @@ final class PestOutputParser
         $location = preg_match('/at\s+(\S+:\d+)/', $body, $m) ? " ({$m[1]})" : '';
         $message = $this->extractAssertionMessage($body);
 
-        return $name . $location . $message;
+        return $name.$location.$message;
     }
 
     private function extractAssertionMessage(string $body): string
