@@ -289,6 +289,8 @@ describe('CertifyCommand', function () {
 
             ($this->createCommand)([$testsCheck, $securityCheck, $syntaxCheck], $checksClient);
 
+            $this->expectOutputRegex('/.*/s');
+
             $this->artisan('certify', ['--compact' => true])
                 ->assertSuccessful();
         });
