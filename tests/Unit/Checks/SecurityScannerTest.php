@@ -112,7 +112,59 @@ describe('SecurityScanner', function () {
         $result = $scanner->run('/tmp');
 
         expect($result->passed)->toBeFalse();
+        expect($result->message)->toBe('Failed to parse composer audit output');
+        expect($result->details)->toHaveCount(1);
+        expect($result->details[0])->toContain('Raw output: not valid json');
+    });
+
+    it('handles composer error response', function () {
+        $mockRunner = mock(ProcessRunner::class);
+        $mockRunner->shouldReceive('run')
+            ->once()
+            ->andReturn(new ProcessResult(
+                successful: false,
+                output: json_encode(['error' => 'Could not connect to packagist']),
+            ));
+
+        $scanner = new SecurityScanner(processRunner: $mockRunner);
+        $result = $scanner->run('/tmp');
+
+        expect($result->passed)->toBeFalse();
+        expect($result->message)->toBe('Composer audit error: Could not connect to packagist');
         expect($result->details)->toBeEmpty();
+    });
+
+    it('handles composer command not found', function () {
+        $mockRunner = mock(ProcessRunner::class);
+        $mockRunner->shouldReceive('run')
+            ->once()
+            ->andReturn(new ProcessResult(
+                successful: false,
+                output: 'composer: command not found',
+            ));
+
+        $scanner = new SecurityScanner(processRunner: $mockRunner);
+        $result = $scanner->run('/tmp');
+
+        expect($result->passed)->toBeFalse();
+        expect($result->message)->toBe('Failed to parse composer audit output');
+        expect($result->details[0])->toContain('Raw output: composer: command not found');
+    });
+
+    it('handles empty JSON response without advisories key', function () {
+        $mockRunner = mock(ProcessRunner::class);
+        $mockRunner->shouldReceive('run')
+            ->once()
+            ->andReturn(new ProcessResult(
+                successful: true,
+                output: json_encode([]),
+            ));
+
+        $scanner = new SecurityScanner(processRunner: $mockRunner);
+        $result = $scanner->run('/tmp');
+
+        expect($result->passed)->toBeTrue();
+        expect($result->message)->toBe('No security vulnerabilities found');
     });
 
     it('passes correct command to process runner', function () {
