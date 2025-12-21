@@ -7,14 +7,13 @@ namespace App;
 final readonly class Verdict
 {
     /**
-     * @param array<int, string> $failures
+     * @param  array<int, string>  $failures
      */
     private function __construct(
         private string $status,
         private string $reason,
         private array $failures = []
-    ) {
-    }
+    ) {}
 
     public static function approved(string $reason): self
     {

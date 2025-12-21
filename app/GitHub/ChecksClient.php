@@ -130,6 +130,7 @@ final class ChecksClient
         if (! $this->isAvailable()) {
             $hasToken = $this->token ? 'yes' : 'no';
             echo "::warning::ChecksClient not available (token={$hasToken}, repo={$this->repo}, sha={$this->sha})\n";
+
             return false;
         }
 
@@ -152,6 +153,7 @@ final class ChecksClient
             return true;
         } catch (GuzzleException $e) {
             echo "::warning::ChecksClient error: {$e->getMessage()}\n";
+
             return false;
         }
     }

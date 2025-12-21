@@ -36,7 +36,7 @@ final class PestOutputParser
         $location = preg_match('/at\s+(\S+:\d+)/', $body, $m) ? " ({$m[1]})" : '';
         $message = $this->extractAssertionMessage($body);
 
-        return $name . $location . $message;
+        return $name.$location.$message;
     }
 
     private function extractAssertionMessage(string $body): string
@@ -80,5 +80,60 @@ final class PestOutputParser
         asort($belowThreshold);
 
         return $belowThreshold;
+    }
+
+    /**
+     * Check if coverage has rounding discrepancy (e.g., 99.95% rounds to 100% but files are below threshold).
+     *
+     * @return bool True if rounding is hiding files below threshold
+     */
+    public function hasRoundingDiscrepancy(string $output, float $threshold): bool
+    {
+        // Only check when threshold is 100 and total shows 100%
+        if ($threshold !== 100.0) {
+            return false;
+        }
+
+        $totalCoverage = $this->parseCoverage($output);
+        if ($totalCoverage === null || $totalCoverage !== 100.0) {
+            return false;
+        }
+
+        // Check if any individual files are below threshold
+        $filesBelowThreshold = $this->parseFileCoverage($output, $threshold);
+
+        return count($filesBelowThreshold) > 0;
+    }
+
+    /**
+     * Calculate the actual coverage from file breakdown (more accurate than rounded total).
+     *
+     * @return float|null Actual coverage percentage or null if cannot calculate
+     */
+    public function calculateActualCoverage(string $output): ?float
+    {
+        // Parse all file coverage percentages
+        preg_match_all('/^\s+(\S+)\s+\.+\s*([\d.]+)\s*%$/m', $output, $matches, PREG_SET_ORDER);
+
+        $totalCoverage = 0.0;
+        $fileCount = 0;
+
+        foreach ($matches as $match) {
+            $name = $match[1];
+            // Skip Total line
+            if (strtolower($name) === 'total') {
+                continue;
+            }
+            $coverage = (float) $match[2];
+            $totalCoverage += $coverage;
+            $fileCount++;
+        }
+
+        if ($fileCount === 0) {
+            return null;
+        }
+
+        // Return average coverage across all files
+        return round($totalCoverage / $fileCount, 2);
     }
 }

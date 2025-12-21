@@ -2,16 +2,21 @@
 
 declare(strict_types=1);
 
-use App\Stages\TechnicalGate;
 use App\Checks\CheckInterface;
 use App\Checks\CheckResult;
-use App\Verdict;
+use App\Stages\TechnicalGate;
 
 describe('TechnicalGate', function () {
     it('returns approved verdict when all checks pass', function () {
-        $passingCheck = new class implements CheckInterface {
-            public function name(): string { return 'Mock Check'; }
-            public function run(string $workingDirectory): CheckResult {
+        $passingCheck = new class implements CheckInterface
+        {
+            public function name(): string
+            {
+                return 'Mock Check';
+            }
+
+            public function run(string $workingDirectory): CheckResult
+            {
                 return CheckResult::pass('All good');
             }
         };
@@ -24,9 +29,15 @@ describe('TechnicalGate', function () {
     });
 
     it('returns rejected verdict when a check fails', function () {
-        $failingCheck = new class implements CheckInterface {
-            public function name(): string { return 'Failing Check'; }
-            public function run(string $workingDirectory): CheckResult {
+        $failingCheck = new class implements CheckInterface
+        {
+            public function name(): string
+            {
+                return 'Failing Check';
+            }
+
+            public function run(string $workingDirectory): CheckResult
+            {
                 return CheckResult::fail('Something went wrong', ['detail 1']);
             }
         };
@@ -40,15 +51,27 @@ describe('TechnicalGate', function () {
     });
 
     it('aggregates multiple failures into single verdict', function () {
-        $failingCheck1 = new class implements CheckInterface {
-            public function name(): string { return 'Check 1'; }
-            public function run(string $workingDirectory): CheckResult {
+        $failingCheck1 = new class implements CheckInterface
+        {
+            public function name(): string
+            {
+                return 'Check 1';
+            }
+
+            public function run(string $workingDirectory): CheckResult
+            {
                 return CheckResult::fail('First failure');
             }
         };
-        $failingCheck2 = new class implements CheckInterface {
-            public function name(): string { return 'Check 2'; }
-            public function run(string $workingDirectory): CheckResult {
+        $failingCheck2 = new class implements CheckInterface
+        {
+            public function name(): string
+            {
+                return 'Check 2';
+            }
+
+            public function run(string $workingDirectory): CheckResult
+            {
                 return CheckResult::fail('Second failure');
             }
         };
@@ -63,19 +86,35 @@ describe('TechnicalGate', function () {
     it('runs all checks even if some fail', function () {
         $checkRuns = [];
 
-        $failingCheck = new class($checkRuns) implements CheckInterface {
+        $failingCheck = new class($checkRuns) implements CheckInterface
+        {
             public function __construct(private array &$runs) {}
-            public function name(): string { return 'Failing'; }
-            public function run(string $workingDirectory): CheckResult {
+
+            public function name(): string
+            {
+                return 'Failing';
+            }
+
+            public function run(string $workingDirectory): CheckResult
+            {
                 $this->runs[] = 'failing';
+
                 return CheckResult::fail('Failed');
             }
         };
-        $passingCheck = new class($checkRuns) implements CheckInterface {
+        $passingCheck = new class($checkRuns) implements CheckInterface
+        {
             public function __construct(private array &$runs) {}
-            public function name(): string { return 'Passing'; }
-            public function run(string $workingDirectory): CheckResult {
+
+            public function name(): string
+            {
+                return 'Passing';
+            }
+
+            public function run(string $workingDirectory): CheckResult
+            {
                 $this->runs[] = 'passing';
+
                 return CheckResult::pass('Passed');
             }
         };
@@ -87,9 +126,15 @@ describe('TechnicalGate', function () {
     });
 
     it('includes check name in failure messages', function () {
-        $failingCheck = new class implements CheckInterface {
-            public function name(): string { return 'Security Audit'; }
-            public function run(string $workingDirectory): CheckResult {
+        $failingCheck = new class implements CheckInterface
+        {
+            public function name(): string
+            {
+                return 'Security Audit';
+            }
+
+            public function run(string $workingDirectory): CheckResult
+            {
                 return CheckResult::fail('Vulnerabilities found');
             }
         };

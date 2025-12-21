@@ -63,7 +63,7 @@ describe('CommentsClient', function () {
         });
 
         it('returns null when event JSON has no PR number', function () {
-            $tempFile = sys_get_temp_dir() . '/event_no_pr_' . uniqid() . '.json';
+            $tempFile = sys_get_temp_dir().'/event_no_pr_'.uniqid().'.json';
             file_put_contents($tempFile, json_encode(['action' => 'opened']));
             putenv("GITHUB_EVENT_PATH={$tempFile}");
 
@@ -74,7 +74,7 @@ describe('CommentsClient', function () {
         });
 
         it('extracts PR number from event JSON', function () {
-            $tempFile = sys_get_temp_dir() . '/event_' . uniqid() . '.json';
+            $tempFile = sys_get_temp_dir().'/event_'.uniqid().'.json';
             file_put_contents($tempFile, json_encode(['pull_request' => ['number' => 456]]));
             putenv("GITHUB_EVENT_PATH={$tempFile}");
 
