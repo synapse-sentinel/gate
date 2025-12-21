@@ -10,7 +10,7 @@ use App\Services\SymfonyProcessRunner;
 final class SecurityScanner implements CheckInterface
 {
     public function __construct(
-        private readonly ProcessRunner $processRunner = new SymfonyProcessRunner(),
+        private readonly ProcessRunner $processRunner = new SymfonyProcessRunner,
     ) {}
 
     public function name(): string

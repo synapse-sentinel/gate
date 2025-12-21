@@ -13,7 +13,7 @@ use GuzzleHttp\Psr7\Response;
 
 beforeEach(function () {
     $this->createCommand = function (CheckInterface $check, ChecksClient $checksClient) {
-        $command = new SecurityCommand();
+        $command = new SecurityCommand;
         $command->withMocks($check, $checksClient);
         app()->singleton(SecurityCommand::class, fn () => $command);
     };

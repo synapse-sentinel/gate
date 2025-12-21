@@ -18,8 +18,8 @@ final class TestRunner implements CheckInterface
 
     public function __construct(
         private readonly int $coverageThreshold = 100,
-        private readonly PestOutputParser $parser = new PestOutputParser(),
-        private readonly ProcessRunner $processRunner = new SymfonyProcessRunner(),
+        private readonly PestOutputParser $parser = new PestOutputParser,
+        private readonly ProcessRunner $processRunner = new SymfonyProcessRunner,
     ) {}
 
     /** @internal For testing only */
@@ -40,7 +40,7 @@ final class TestRunner implements CheckInterface
 
     public function run(string $workingDirectory): CheckResult
     {
-        $cloverPath = $workingDirectory . '/coverage.xml';
+        $cloverPath = $workingDirectory.'/coverage.xml';
 
         $result = $this->processRunner->run(
             ['vendor/bin/pest', '--coverage', "--min={$this->coverageThreshold}", "--coverage-clover={$cloverPath}", '--colors=never'],

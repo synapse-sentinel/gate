@@ -33,13 +33,16 @@ class CoverageReporter
 
         $metrics = $xml->project->metrics ?? null;
         if ($metrics === null) {
-            throw new \RuntimeException("Invalid clover format: missing project metrics");
+            throw new \RuntimeException('Invalid clover format: missing project metrics');
         }
 
         $files = [];
         foreach ($xml->project->package ?? [] as $package) {
             foreach ($package->file ?? [] as $file) {
-                $files[] = $this->parseFile($file);
+                $parsed = $this->parseFile($file);
+                if ($parsed !== null) {
+                    $files[] = $parsed;
+                }
             }
         }
 
@@ -49,11 +52,11 @@ class CoverageReporter
         ];
     }
 
-    private function parseFile(SimpleXMLElement $file): array
+    private function parseFile(SimpleXMLElement $file): ?array
     {
         $metrics = $file->metrics ?? null;
         if ($metrics === null) {
-            return [];
+            return null;
         }
 
         $fileName = (string) $file['name'];
@@ -127,7 +130,7 @@ class CoverageReporter
                 $uncoveredCount = count($file['uncovered_lines']);
                 $uncoveredPreview = $uncoveredCount > 0 ? implode(', ', array_slice($file['uncovered_lines'], 0, 5)) : 'None';
                 if ($uncoveredCount > 5) {
-                    $uncoveredPreview .= "... (+".($uncoveredCount - 5)." more)";
+                    $uncoveredPreview .= '... (+'.($uncoveredCount - 5).' more)';
                 }
                 $markdown .= "| `{$fileName}` | {$coverage}% | {$uncoveredPreview} |\n";
             }

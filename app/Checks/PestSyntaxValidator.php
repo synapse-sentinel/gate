@@ -15,13 +15,13 @@ final class PestSyntaxValidator implements CheckInterface
 
     public function run(string $workingDirectory): CheckResult
     {
-        $testsPath = $workingDirectory . '/tests';
+        $testsPath = $workingDirectory.'/tests';
 
-        if (!is_dir($testsPath)) {
+        if (! is_dir($testsPath)) {
             return CheckResult::pass('No tests directory found');
         }
 
-        $finder = new Finder();
+        $finder = new Finder;
         $finder->files()->in($testsPath)->name('*Test.php');
 
         $violations = [];
@@ -31,7 +31,7 @@ final class PestSyntaxValidator implements CheckInterface
 
             // Check for test() function usage (but not in comments)
             if (preg_match('/^\s*test\s*\(/m', $contents)) {
-                $violations[] = $file->getRelativePathname() . ': Uses test() instead of describe/it blocks';
+                $violations[] = $file->getRelativePathname().': Uses test() instead of describe/it blocks';
             }
         }
 
