@@ -29,7 +29,7 @@ describe('CohesionCheckCommand', function () {
 
             $mock = new MockHandler([new Response(201)]);
             $httpClient = new Client(['handler' => HandlerStack::create($mock)]);
-            $checksClient = new ChecksClient('token', $httpClient, 'owner/repo', 'sha123');
+            $checksClient = new ChecksClient('token', $httpClient, 'owner/repo', 'sha123', 1);
 
             ($this->createCommand)($check, $checksClient);
 
@@ -49,7 +49,7 @@ describe('CohesionCheckCommand', function () {
 
             $mock = new MockHandler([new Response(201)]);
             $httpClient = new Client(['handler' => HandlerStack::create($mock)]);
-            $checksClient = new ChecksClient('token', $httpClient, 'owner/repo', 'sha123');
+            $checksClient = new ChecksClient('token', $httpClient, 'owner/repo', 'sha123', 1);
 
             ($this->createCommand)($check, $checksClient);
 
@@ -65,7 +65,7 @@ describe('CohesionCheckCommand', function () {
 
             $mock = new MockHandler([new Response(201)]);
             $httpClient = new Client(['handler' => HandlerStack::create($mock)]);
-            $checksClient = new ChecksClient('token', $httpClient, 'owner/repo', 'sha123');
+            $checksClient = new ChecksClient('token', $httpClient, 'owner/repo', 'sha123', 1);
 
             ($this->createCommand)($check, $checksClient);
 
@@ -81,7 +81,7 @@ describe('CohesionCheckCommand', function () {
 
             $mock = new MockHandler([new Response(201)]);
             $httpClient = new Client(['handler' => HandlerStack::create($mock)]);
-            $checksClient = new ChecksClient('custom-token', $httpClient, 'owner/repo', 'sha123');
+            $checksClient = new ChecksClient('custom-token', $httpClient, 'owner/repo', 'sha123', 1);
 
             ($this->createCommand)($check, $checksClient);
 
@@ -97,7 +97,7 @@ describe('CohesionCheckCommand', function () {
 
             $mock = new MockHandler([new Response(201)]);
             $httpClient = new Client(['handler' => HandlerStack::create($mock)]);
-            $checksClient = new ChecksClient('token', $httpClient, 'owner/repo', 'sha123');
+            $checksClient = new ChecksClient('token', $httpClient, 'owner/repo', 'sha123', 1);
 
             ($this->createCommand)($check, $checksClient);
 
