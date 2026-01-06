@@ -1,10 +1,21 @@
 # Synapse Sentinel Gate
 
-Universal code quality gate for the Jordan ecosystem. Enforces consistent standards across all repositories.
+Universal code quality gate with AI-powered validation. Enforces consistent standards across all repositories using local Ollama models.
 
 ## Quick Start
 
-Add to your repository's workflow:
+Install gate hooks in your repository:
+
+```bash
+# Install gate globally
+composer global require synapse-sentinel/gate
+
+# Install hooks in your repository
+cd /path/to/your/repo
+gate install
+```
+
+Or use in GitHub Actions:
 
 ```yaml
 name: Gate
@@ -19,9 +30,9 @@ jobs:
       pull-requests: write # Required for PR comments
     steps:
       - uses: actions/checkout@v4
-      - uses: synapse-sentinel/gate@v1
+      - uses: synapse-sentinel/gate@v2
         with:
-          coverage-threshold: 100
+          coverage-threshold: 80
 ```
 
 ### Required Permissions
@@ -36,15 +47,26 @@ Without these permissions, the action will run successfully but features will si
 
 ## What It Checks
 
-### Technical Gate (Phase 1)
+### Phase 1: Pre-Commit Validation (Local, <10s)
+- **Attribution Check**: Removes Claude Code attribution from commits
+- **Logic & Atomicity**: AI validation that commits are atomic and coherent (Ollama)
+- **Syntax Check**: Fast syntax validation
+
+### Phase 2: CI/CD Validation (GitHub Actions, 2-5min)
 - **Tests & Coverage**: Runs `pest --coverage --min=X`
 - **Security Audit**: Runs `composer audit` for vulnerabilities
 - **Pest Syntax**: Validates all tests use `describe()/it()` blocks
+- **PR Cohesion**: Cross-file analysis for missing files and MVC coherence (Ollama)
 
-### Business Logic Gate (Phase 2 - Coming Soon)
-- Issue intent matching
-- Architectural compliance
-- Over/under-engineering detection
+### Phase 3: AI Code Review (GitHub Actions, 30s with caching)
+- **Pattern Analysis**: Detects Laravel anti-patterns (N+1 queries, fat controllers)
+- **Security Analysis**: Identifies SQL injection, XSS, mass assignment issues
+- **Test Suggestions**: Generates specific test recommendations
+
+### Phase 4: Semantic Release (On merge to main)
+- **Auto-versioning**: Based on conventional commits (feat, fix, BREAKING)
+- **Changelog Generation**: Automatic CHANGELOG.md updates
+- **GitHub Releases**: Automated release creation with notes
 
 ## Inputs
 
@@ -69,11 +91,55 @@ Without these permissions, the action will run successfully but features will si
 ## Local Usage
 
 ```bash
-# Run gate on current directory
-php gate run --coverage=100
+# Install gate globally
+composer global require synapse-sentinel/gate
 
-# Run with lower threshold
-php gate run --coverage=80
+# Install hooks in your repository
+gate install
+
+# Run full certification
+gate certify --coverage=80
+
+# Run individual checks
+gate check:attribution          # Check for Claude Code attribution
+gate check:attribution --fix    # Remove attribution automatically
+gate check:logic                # Validate commit atomicity (Ollama)
+gate check:cohesion             # Analyze PR cohesion (Ollama)
+
+# Compact output mode
+gate certify --compact
+```
+
+## AI Models
+
+Gate uses [Ollama](https://ollama.com) for local AI validation:
+
+- **llama3.2:3b** - Fast atomicity and logic checks (3-8 seconds)
+- **qwen2.5-coder:7b** - Deep code review in CI (with caching)
+
+Models are automatically downloaded when first needed. Ollama is optional - gate works without it but skips AI checks.
+
+## Configuration
+
+After running `gate install`, edit `.gate/config.php`:
+
+```php
+return [
+    'pre_commit' => [
+        'attribution' => true,  // Remove Claude attribution
+        'logic' => true,        // Ollama atomicity check
+        'syntax' => true,       // Fast syntax validation
+    ],
+    'ci_checks' => [
+        'tests' => true,
+        'security' => true,
+        'cohesion' => true,     // PR cross-file analysis
+    ],
+    'ollama' => [
+        'model' => 'llama3.2:3b',
+        'timeout' => 30,
+    ],
+];
 ```
 
 ## Development

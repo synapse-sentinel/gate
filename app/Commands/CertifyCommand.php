@@ -5,7 +5,10 @@ declare(strict_types=1);
 namespace App\Commands;
 
 use App\Branding;
+use App\Checks\AttributionCheck;
 use App\Checks\CheckInterface;
+use App\Checks\CohesionCheck;
+use App\Checks\LogicCheck;
 use App\Checks\PestSyntaxValidator;
 use App\Checks\SecurityScanner;
 use App\Checks\TestRunner;
@@ -60,9 +63,12 @@ final class CertifyCommand extends Command
         $workingDirectory = getcwd();
 
         $checks = $this->checks ?? [
+            new AttributionCheck,
+            new LogicCheck,
             new TestRunner($coverageThreshold),
             new SecurityScanner,
             new PestSyntaxValidator,
+            new CohesionCheck,
         ];
 
         $stopOnFailure = $this->option('stop-on-failure');
@@ -193,6 +199,9 @@ final class CertifyCommand extends Command
             'Tests & Coverage' => 'Tests',
             'Security Audit' => 'Security',
             'Pest Syntax' => 'Syntax',
+            'Attribution Check' => 'Attribution',
+            'Logic & Atomicity' => 'Logic',
+            'PR Cohesion' => 'Cohesion',
             default => $name,
         };
     }
