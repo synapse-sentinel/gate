@@ -87,7 +87,8 @@ final class ChecksClient
             $data = json_decode($response->getBody()->getContents(), true);
 
             return $data['id'] ?? null;
-        } catch (GuzzleException) {
+        } catch (GuzzleException $e) {
+            $this->logError('createCheck', $e);
             return null;
         }
     }
@@ -116,7 +117,8 @@ final class ChecksClient
             ]);
 
             return true;
-        } catch (GuzzleException) {
+        } catch (GuzzleException $e) {
+            $this->logError('completeCheck', $e);
             return false;
         }
     }
@@ -152,8 +154,7 @@ final class ChecksClient
 
             return true;
         } catch (GuzzleException $e) {
-            echo "::warning::ChecksClient error: {$e->getMessage()}\n";
-
+            $this->logError('reportCheck', $e);
             return false;
         }
     }
@@ -196,8 +197,25 @@ MARKDOWN;
             ]);
 
             return true;
-        } catch (GuzzleException) {
+        } catch (GuzzleException $e) {
+            $this->logError('postCertificationComment', $e);
             return false;
+        }
+    }
+
+    private function logError(string $method, GuzzleException $e): void
+    {
+        echo "::error::GitHub API error in {$method}: {$e->getMessage()}\n";
+
+        if ($e->hasResponse()) {
+            $response = $e->getResponse();
+            $statusCode = $response->getStatusCode();
+
+            if ($statusCode === 403) {
+                echo "::error::Permission denied. Ensure GITHUB_TOKEN has 'checks:write' permission\n";
+            } elseif ($statusCode === 429) {
+                echo "::error::Rate limit exceeded. Wait before retrying\n";
+            }
         }
     }
 }
