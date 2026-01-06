@@ -340,7 +340,28 @@ describe('CertifyCommand', function () {
                 ->once()
                 ->andReturn(CheckResult::pass('OK'));
 
+            $attributionCheck = Mockery::mock(CheckInterface::class);
+            $attributionCheck->shouldReceive('name')->andReturn('Attribution Check');
+            $attributionCheck->shouldReceive('run')
+                ->once()
+                ->andReturn(CheckResult::pass('OK'));
+
+            $logicCheck = Mockery::mock(CheckInterface::class);
+            $logicCheck->shouldReceive('name')->andReturn('Logic & Atomicity');
+            $logicCheck->shouldReceive('run')
+                ->once()
+                ->andReturn(CheckResult::pass('OK'));
+
+            $cohesionCheck = Mockery::mock(CheckInterface::class);
+            $cohesionCheck->shouldReceive('name')->andReturn('PR Cohesion');
+            $cohesionCheck->shouldReceive('run')
+                ->once()
+                ->andReturn(CheckResult::pass('OK'));
+
             $mock = new MockHandler([
+                new Response(201),
+                new Response(201),
+                new Response(201),
                 new Response(201),
                 new Response(201),
                 new Response(201),
@@ -349,7 +370,7 @@ describe('CertifyCommand', function () {
             $httpClient = new Client(['handler' => HandlerStack::create($mock)]);
             $checksClient = new ChecksClient('token', $httpClient, 'owner/repo', 'sha123');
 
-            ($this->createCommand)([$testsCheck, $securityCheck, $syntaxCheck], $checksClient);
+            ($this->createCommand)([$testsCheck, $securityCheck, $syntaxCheck, $attributionCheck, $logicCheck, $cohesionCheck], $checksClient);
 
             $this->artisan('certify', ['--compact' => true])
                 ->assertSuccessful();

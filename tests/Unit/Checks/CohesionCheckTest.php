@@ -339,7 +339,7 @@ CONCERNS: none',
             ->with(['git', 'diff', '--name-only', 'origin/main...HEAD'], Mockery::any(), Mockery::any())
             ->andReturn(new ProcessResult(
                 successful: true,
-                output: "tests/Unit/FooTest.php\nconfig/app.php\nroutes/api.php",
+                output: "app/tests/Feature/UserTest.php\napp/config/database.php\napp/routes/web.php",
             ));
 
         $mockRunner->shouldReceive('run')

@@ -87,5 +87,21 @@ describe('AttributionCheckCommand', function () {
             $this->artisan('check:attribution', ['--token' => 'custom-token'])
                 ->assertSuccessful();
         });
+
+        it('handles failure without details', function () {
+            $check = Mockery::mock(CheckInterface::class);
+            $check->shouldReceive('run')
+                ->once()
+                ->andReturn(CheckResult::fail('Validation failed'));
+
+            $mock = new MockHandler([new Response(201)]);
+            $httpClient = new Client(['handler' => HandlerStack::create($mock)]);
+            $checksClient = new ChecksClient('token', $httpClient, 'owner/repo', 'sha123');
+
+            ($this->createCommand)($check, $checksClient);
+
+            $this->artisan('check:attribution')
+                ->assertFailed();
+        });
     });
 });

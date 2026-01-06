@@ -26,6 +26,7 @@
         </include>
         <exclude>
             <directory>app/Providers</directory>
+            <file>app/Commands/InstallHooksCommand.php</file>
         </exclude>
     </source>
     <coverage>
