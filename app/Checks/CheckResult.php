@@ -10,6 +10,7 @@ final readonly class CheckResult
         public bool $passed,
         public string $message,
         public array $details = [],
+        public string $rawOutput = '',
     ) {}
 
     public static function pass(string $message): self
@@ -17,8 +18,8 @@ final readonly class CheckResult
         return new self(true, $message);
     }
 
-    public static function fail(string $message, array $details = []): self
+    public static function fail(string $message, array $details = [], string $rawOutput = ''): self
     {
-        return new self(false, $message, $details);
+        return new self(false, $message, $details, $rawOutput);
     }
 }

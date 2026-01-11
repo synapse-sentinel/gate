@@ -6,10 +6,12 @@ namespace App\Commands;
 
 use App\Branding;
 use App\Checks\CheckInterface;
+use App\Checks\CheckResult;
 use App\Checks\PestSyntaxValidator;
 use App\Checks\SecurityScanner;
 use App\Checks\TestRunner;
 use App\GitHub\ChecksClient;
+use App\Services\PromptAssembler;
 use App\Verdict;
 use LaravelZero\Framework\Commands\Command;
 
@@ -70,6 +72,7 @@ final class CertifyCommand extends Command
         $failureRows = [];
         $checkResults = [];
         $compactResults = [];
+        $rawOutputs = []; // For prompt assembly
 
         foreach ($checks as $check) {
             $result = $this->runCheck($check, $workingDirectory, $checksClient, $compact);
@@ -78,6 +81,12 @@ final class CertifyCommand extends Command
                 'name' => $this->shortName($check->name()),
                 'passed' => $result->passed,
                 'message' => $result->message,
+            ];
+
+            // Collect raw outputs for prompt transformation
+            $rawOutputs[$check->name()] = [
+                'passed' => $result->passed,
+                'output' => $result->rawOutput,
             ];
 
             if (! $result->passed) {
@@ -112,6 +121,14 @@ final class CertifyCommand extends Command
         // Post PR comment with badge on success
         if ($verdict->isApproved()) {
             $checksClient->postCertificationComment($checkResults);
+        } else {
+            // Post actionable prompt with fix directions on failure
+            $assembler = new PromptAssembler();
+            $assembled = $assembler->assemble($rawOutputs);
+
+            if ($assembled['prompt'] !== '') {
+                $checksClient->postActionablePrompt($assembled['prompt']);
+            }
         }
 
         // Output verdict

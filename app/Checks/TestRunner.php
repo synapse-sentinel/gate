@@ -58,6 +58,7 @@ final class TestRunner implements CheckInterface
         return CheckResult::fail(
             $this->parseFailureMessage($result->output),
             $this->parseFailureDetails($result->output),
+            $result->output, // Raw output for prompt transformation
         );
     }
 
