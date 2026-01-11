@@ -491,4 +491,77 @@ describe('ChecksClient', function () {
             expect($output)->toContain('Rate limit exceeded');
         });
     });
+
+    describe('postActionablePrompt', function () {
+        it('returns false when not available', function () {
+            $client = new ChecksClient(token: null);
+
+            expect($client->postActionablePrompt('Some prompt'))->toBeFalse();
+        });
+
+        it('returns false when no PR number', function () {
+            $client = new ChecksClient(
+                token: 'test-token',
+                repo: 'owner/repo',
+                sha: 'abc123',
+                prNumber: null,
+            );
+
+            expect($client->postActionablePrompt('Some prompt'))->toBeFalse();
+        });
+
+        it('returns true when prompt is empty', function () {
+            $client = new ChecksClient(
+                token: 'test-token',
+                repo: 'owner/repo',
+                sha: 'abc123',
+                prNumber: 42,
+            );
+
+            // Empty prompt should return true without making HTTP request
+            expect($client->postActionablePrompt(''))->toBeTrue();
+        });
+
+        it('posts comment and returns true on success', function () {
+            $mock = new MockHandler([
+                new Response(201),
+            ]);
+            $handlerStack = HandlerStack::create($mock);
+            $httpClient = new Client(['handler' => $handlerStack]);
+
+            $client = new ChecksClient(
+                token: 'test-token',
+                client: $httpClient,
+                repo: 'owner/repo',
+                sha: 'abc123',
+                prNumber: 42,
+            );
+
+            expect($client->postActionablePrompt('## Fix Required\n\nPlease fix the type error.'))->toBeTrue();
+        });
+
+        it('returns false and outputs error on API error', function () {
+            $mock = new MockHandler([
+                new RequestException('API Error', new Request('POST', 'test')),
+            ]);
+            $handlerStack = HandlerStack::create($mock);
+            $httpClient = new Client(['handler' => $handlerStack]);
+
+            $client = new ChecksClient(
+                token: 'test-token',
+                client: $httpClient,
+                repo: 'owner/repo',
+                sha: 'abc123',
+                prNumber: 42,
+            );
+
+            ob_start();
+            $result = $client->postActionablePrompt('Fix this error');
+            $output = ob_get_clean();
+
+            expect($result)->toBeFalse();
+            expect($output)->toContain('::error::');
+            expect($output)->toContain('API Error');
+        });
+    });
 });

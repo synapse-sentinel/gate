@@ -204,6 +204,30 @@ describe('TestFailurePromptTransformer', function () {
 
             expect($result['prompt'])->toContain('file.php');
         });
+
+        it('handles trace without file path', function () {
+            $output = '
+  ✗ test failure
+     Error message with no file reference
+            ';
+
+            $result = $this->transformer->transform($output);
+
+            expect($result['summary']['passed'])->toBeFalse();
+            expect($result['prompt'])->toContain('test failure');
+        });
+
+        it('handles trace without line number', function () {
+            $output = '
+  ✗ test failure
+     Error message
+     at some-weird-format-no-colon
+            ';
+
+            $result = $this->transformer->transform($output);
+
+            expect($result['summary']['passed'])->toBeFalse();
+        });
     });
 
     describe('fix directions', function () {

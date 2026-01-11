@@ -17,6 +17,37 @@ class AnalyzeCommand extends Command
 
     protected $description = 'Send failures to Prefrontal Cortex for AI analysis';
 
+    /** @var Client|null For testing */
+    private ?Client $httpClient = null;
+
+    /** @var callable|null For testing file reading */
+    private $fileReader = null;
+
+    /** @internal For testing only */
+    public function withMocks(?Client $httpClient = null): self
+    {
+        $this->httpClient = $httpClient;
+
+        return $this;
+    }
+
+    /** @internal For testing only */
+    public function withFileReader(callable $reader): self
+    {
+        $this->fileReader = $reader;
+
+        return $this;
+    }
+
+    protected function readFile(string $path): string|false
+    {
+        if ($this->fileReader) {
+            return ($this->fileReader)($path);
+        }
+
+        return file_get_contents($path);
+    }
+
     public function handle(): int
     {
         $apiUrl = $this->option('api-url') ?? getenv('PREFRONTAL_API_URL') ?: 'https://prefrontal.jordanpartridge.us';
@@ -35,7 +66,7 @@ class AnalyzeCommand extends Command
             return 1;
         }
 
-        $failuresContent = file_get_contents($failuresFile);
+        $failuresContent = $this->readFile($failuresFile);
         if ($failuresContent === false) {
             $this->error('Could not read failures file');
 
@@ -52,7 +83,7 @@ class AnalyzeCommand extends Command
         $this->info('🧠 Sending failures to Prefrontal Cortex for analysis...');
 
         try {
-            $client = new Client([
+            $client = $this->httpClient ?? new Client([
                 'base_uri' => $apiUrl,
                 'timeout' => 60,
             ]);
@@ -91,9 +122,9 @@ class AnalyzeCommand extends Command
         }
     }
 
-    protected function detectRepo(): string
+    protected function detectRepo(?string $remoteOverride = null): string
     {
-        $remote = trim(shell_exec('git remote get-url origin 2>/dev/null') ?? '');
+        $remote = $remoteOverride ?? trim(shell_exec('git remote get-url origin 2>/dev/null') ?? '');
         if (preg_match('#github\.com[:/](.+?)(?:\.git)?$#', $remote, $matches)) {
             return $matches[1];
         }

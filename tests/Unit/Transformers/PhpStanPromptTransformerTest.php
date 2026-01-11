@@ -312,17 +312,13 @@ describe('PhpStanPromptTransformer', function () {
             expect($result['prompt'])->toContain('Review the error and ensure types match declarations');
         });
 
-        it('handles prefix-matched identifiers', function () {
-            // The prefix matching only works for single-segment prefixes
-            // Since there's no 'argument' key, only 'argument.type' etc.,
-            // the identifier 'argument.type.strict' falls through to message inference
+        it('uses exact identifier match for fix direction', function () {
             $json = json_encode([
                 'totals' => ['file_errors' => 1, 'errors' => 1],
                 'files' => [
                     '/app/Test.php' => [
                         'errors' => 1,
                         'messages' => [
-                            // Use exact match instead since prefix doesn't work as expected
                             ['line' => 1, 'message' => 'Error', 'identifier' => 'argument.type'],
                         ],
                     ],
@@ -349,6 +345,33 @@ describe('PhpStanPromptTransformer', function () {
             $result = $this->transformer->transform($output);
 
             expect($result['summary']['valid'])->toBeFalse();
+        });
+    });
+
+    describe('relativePath', function () {
+        it('strips cwd prefix from paths', function () {
+            $transformer = new PhpStanPromptTransformer;
+            $reflection = new ReflectionClass($transformer);
+            $method = $reflection->getMethod('relativePath');
+            $method->setAccessible(true);
+
+            $cwd = getcwd();
+            $fullPath = $cwd.'/app/Test.php';
+
+            $result = $method->invoke($transformer, $fullPath);
+
+            expect($result)->toBe('app/Test.php');
+        });
+
+        it('keeps path unchanged when not in cwd', function () {
+            $transformer = new PhpStanPromptTransformer;
+            $reflection = new ReflectionClass($transformer);
+            $method = $reflection->getMethod('relativePath');
+            $method->setAccessible(true);
+
+            $result = $method->invoke($transformer, '/some/other/path/Test.php');
+
+            expect($result)->toBe('/some/other/path/Test.php');
         });
     });
 });

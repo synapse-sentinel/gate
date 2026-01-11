@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use App\Commands\CheckCommand;
+use Symfony\Component\Process\Process;
 
 describe('CheckCommand', function () {
     describe('signature', function () {
@@ -274,6 +275,191 @@ describe('CheckCommand with mock results', function () {
             $this->artisan('check')
                 ->assertSuccessful()
                 ->expectsOutputToContain('Synapse Sentinel Gate');
+        });
+    });
+});
+
+describe('CheckCommand with mocked processes', function () {
+    beforeEach(function () {
+        $this->createProcessMock = function (bool $successful, string $output = '', int $exitCode = 0) {
+            $process = Mockery::mock(Process::class);
+            $process->shouldReceive('setTimeout')->andReturnSelf();
+            $process->shouldReceive('run')->andReturn($exitCode);
+            $process->shouldReceive('isSuccessful')->andReturn($successful);
+            $process->shouldReceive('getOutput')->andReturn($output);
+            $process->shouldReceive('getExitCode')->andReturn($exitCode);
+
+            return $process;
+        };
+
+        $this->createCommand = function (array $processes) {
+            $index = 0;
+            $command = new CheckCommand;
+            $command->withProcessFactory(function ($cmd) use ($processes, &$index) {
+                return $processes[$index++] ?? $processes[0];
+            });
+            app()->singleton(CheckCommand::class, fn () => $command);
+        };
+    });
+
+    describe('runTests', function () {
+        it('runs tests and parses coverage output', function () {
+            $testProcess = ($this->createProcessMock)(true, "Tests: 10 passed\nCoverage: 95.5%");
+            $phpstanProcess = ($this->createProcessMock)(true, json_encode(['totals' => ['errors' => 0], 'files' => []]));
+            $styleProcess = ($this->createProcessMock)(true);
+
+            ($this->createCommand)([$testProcess, $phpstanProcess, $styleProcess]);
+
+            $this->artisan('check')
+                ->assertFailed(); // 95.5% < 100%
+        });
+
+        it('handles test failure', function () {
+            $testProcess = ($this->createProcessMock)(false, 'FAILED Tests', 1);
+            $phpstanProcess = ($this->createProcessMock)(true, json_encode(['totals' => ['errors' => 0], 'files' => []]));
+            $styleProcess = ($this->createProcessMock)(true);
+
+            ($this->createCommand)([$testProcess, $phpstanProcess, $styleProcess]);
+
+            $this->artisan('check')
+                ->assertFailed();
+        });
+
+        it('handles 100% coverage', function () {
+            $testProcess = ($this->createProcessMock)(true, "Tests: 10 passed\nCoverage: 100.0%");
+            $phpstanProcess = ($this->createProcessMock)(true, json_encode(['totals' => ['errors' => 0], 'files' => []]));
+            $styleProcess = ($this->createProcessMock)(true);
+
+            ($this->createCommand)([$testProcess, $phpstanProcess, $styleProcess]);
+
+            $this->artisan('check')
+                ->assertSuccessful();
+        });
+
+        it('handles output without coverage info', function () {
+            $testProcess = ($this->createProcessMock)(true, 'Tests: 10 passed');
+            $phpstanProcess = ($this->createProcessMock)(true, json_encode(['totals' => ['errors' => 0], 'files' => []]));
+            $styleProcess = ($this->createProcessMock)(true);
+
+            ($this->createCommand)([$testProcess, $phpstanProcess, $styleProcess]);
+
+            $this->artisan('check')
+                ->assertSuccessful();
+        });
+    });
+
+    describe('runPhpstan', function () {
+        it('runs phpstan and parses errors', function () {
+            $testProcess = ($this->createProcessMock)(true, 'Coverage: 100.0%');
+            $phpstanProcess = ($this->createProcessMock)(false, json_encode([
+                'totals' => ['errors' => 3],
+                'files' => ['/app/Test.php' => ['errors' => 3]],
+            ]));
+            $styleProcess = ($this->createProcessMock)(true);
+
+            ($this->createCommand)([$testProcess, $phpstanProcess, $styleProcess]);
+
+            $this->artisan('check', ['--format' => 'minimal'])
+                ->assertFailed()
+                ->expectsOutputToContain('PHPStan: 3 errors');
+        });
+
+        it('handles invalid json output', function () {
+            $testProcess = ($this->createProcessMock)(true, 'Coverage: 100.0%');
+            $phpstanProcess = ($this->createProcessMock)(true, 'not json');
+            $styleProcess = ($this->createProcessMock)(true);
+
+            ($this->createCommand)([$testProcess, $phpstanProcess, $styleProcess]);
+
+            $this->artisan('check')
+                ->assertSuccessful();
+        });
+    });
+
+    describe('runStyle', function () {
+        it('runs style check and handles failure', function () {
+            $testProcess = ($this->createProcessMock)(true, 'Coverage: 100.0%');
+            $phpstanProcess = ($this->createProcessMock)(true, json_encode(['totals' => ['errors' => 0], 'files' => []]));
+            $styleProcess = ($this->createProcessMock)(false, 'Style violations found');
+
+            ($this->createCommand)([$testProcess, $phpstanProcess, $styleProcess]);
+
+            $this->artisan('check', ['--format' => 'minimal'])
+                ->assertFailed()
+                ->expectsOutputToContain('Style: violations found');
+        });
+    });
+
+    describe('skip options', function () {
+        it('skips tests with --no-tests', function () {
+            $phpstanProcess = ($this->createProcessMock)(true, json_encode(['totals' => ['errors' => 0], 'files' => []]));
+            $styleProcess = ($this->createProcessMock)(true);
+
+            ($this->createCommand)([$phpstanProcess, $styleProcess]);
+
+            $this->artisan('check', ['--no-tests' => true])
+                ->assertSuccessful();
+        });
+
+        it('skips phpstan with --no-phpstan', function () {
+            $testProcess = ($this->createProcessMock)(true, 'Coverage: 100.0%');
+            $styleProcess = ($this->createProcessMock)(true);
+
+            ($this->createCommand)([$testProcess, $styleProcess]);
+
+            $this->artisan('check', ['--no-phpstan' => true])
+                ->assertSuccessful();
+        });
+
+        it('skips style with --no-style', function () {
+            $testProcess = ($this->createProcessMock)(true, 'Coverage: 100.0%');
+            $phpstanProcess = ($this->createProcessMock)(true, json_encode(['totals' => ['errors' => 0], 'files' => []]));
+
+            ($this->createCommand)([$testProcess, $phpstanProcess]);
+
+            $this->artisan('check', ['--no-style' => true])
+                ->assertSuccessful();
+        });
+
+        it('skips all checks with all skip options', function () {
+            $command = new CheckCommand;
+            app()->singleton(CheckCommand::class, fn () => $command);
+
+            $this->artisan('check', [
+                '--no-tests' => true,
+                '--no-phpstan' => true,
+                '--no-style' => true,
+            ])
+                ->assertSuccessful();
+        });
+    });
+
+    describe('createProcess', function () {
+        it('uses factory when provided', function () {
+            $command = new CheckCommand;
+            $mockProcess = Mockery::mock(Process::class);
+
+            $command->withProcessFactory(fn ($cmd) => $mockProcess);
+
+            $reflection = new ReflectionClass($command);
+            $method = $reflection->getMethod('createProcess');
+            $method->setAccessible(true);
+
+            $result = $method->invoke($command, ['test', 'command']);
+
+            expect($result)->toBe($mockProcess);
+        });
+
+        it('creates real process without factory', function () {
+            $command = new CheckCommand;
+
+            $reflection = new ReflectionClass($command);
+            $method = $reflection->getMethod('createProcess');
+            $method->setAccessible(true);
+
+            $result = $method->invoke($command, ['echo', 'test']);
+
+            expect($result)->toBeInstanceOf(Process::class);
         });
     });
 });

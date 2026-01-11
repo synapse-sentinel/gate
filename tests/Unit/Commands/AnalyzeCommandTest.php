@@ -130,6 +130,22 @@ describe('AnalyzeCommand', function () {
 
             putenv('PREFRONTAL_API_TOKEN=');
         });
+
+        it('fails when file cannot be read', function () {
+            $failuresFile = $this->tempDir.'/failures.json';
+            file_put_contents($failuresFile, json_encode(['test' => 'failure']));
+
+            $command = new AnalyzeCommand;
+            $command->withFileReader(fn ($path) => false);
+            app()->singleton(AnalyzeCommand::class, fn () => $command);
+
+            $this->artisan('analyze', [
+                '--api-token' => 'test-token',
+                '--failures' => $failuresFile,
+            ])
+                ->assertFailed()
+                ->expectsOutputToContain('Could not read failures file');
+        });
     });
 });
 
@@ -137,6 +153,12 @@ describe('AnalyzeCommand with mocked HTTP', function () {
     beforeEach(function () {
         $this->tempDir = sys_get_temp_dir().'/gate-test-'.uniqid();
         mkdir($this->tempDir);
+
+        $this->createCommand = function (Client $httpClient) {
+            $command = new AnalyzeCommand;
+            $command->withMocks($httpClient);
+            app()->singleton(AnalyzeCommand::class, fn () => $command);
+        };
     });
 
     afterEach(function () {
@@ -152,7 +174,6 @@ describe('AnalyzeCommand with mocked HTTP', function () {
             ['type' => 'test', 'message' => 'Test failed'],
         ]));
 
-        // Create a testable command with mocked HTTP client
         $mockResponse = new Response(200, [], json_encode([
             'fixes' => [
                 ['type' => 'test', 'file' => 'Test.php', 'suggestion' => 'Fix the assertion'],
@@ -164,11 +185,165 @@ describe('AnalyzeCommand with mocked HTTP', function () {
         $handlerStack = HandlerStack::create($mock);
         $client = new Client(['handler' => $handlerStack]);
 
-        // Use reflection to test with mocked client
-        $command = new AnalyzeCommand;
+        ($this->createCommand)($client);
 
-        // Since we can't easily inject the client, test that the command structure is correct
-        expect($command->getName())->toBe('analyze');
+        $this->artisan('analyze', [
+            '--api-token' => 'test-token',
+            '--failures' => $failuresFile,
+        ])
+            ->assertSuccessful();
+    });
+
+    it('displays fixes with suggestion', function () {
+        $failuresFile = $this->tempDir.'/failures.json';
+        file_put_contents($failuresFile, json_encode(['test' => 'data']));
+
+        $mockResponse = new Response(200, [], json_encode([
+            'fixes' => [
+                ['type' => 'phpstan', 'file' => 'Service.php', 'suggestion' => 'Add return type annotation'],
+            ],
+            'minimal_report' => 'Done',
+        ]));
+
+        $mock = new MockHandler([$mockResponse]);
+        $client = new Client(['handler' => HandlerStack::create($mock)]);
+
+        ($this->createCommand)($client);
+
+        $this->artisan('analyze', [
+            '--api-token' => 'test-token',
+            '--failures' => $failuresFile,
+        ])
+            ->assertSuccessful();
+    });
+
+    it('handles fixes without suggestion', function () {
+        $failuresFile = $this->tempDir.'/failures.json';
+        file_put_contents($failuresFile, json_encode(['test' => 'data']));
+
+        $mockResponse = new Response(200, [], json_encode([
+            'fixes' => [
+                ['type' => 'security', 'file' => 'Config.php'],
+            ],
+            'minimal_report' => 'Fixed',
+        ]));
+
+        $mock = new MockHandler([$mockResponse]);
+        $client = new Client(['handler' => HandlerStack::create($mock)]);
+
+        ($this->createCommand)($client);
+
+        $this->artisan('analyze', [
+            '--api-token' => 'test-token',
+            '--failures' => $failuresFile,
+        ])
+            ->assertSuccessful();
+    });
+
+    it('handles fixes with missing type and file', function () {
+        $failuresFile = $this->tempDir.'/failures.json';
+        file_put_contents($failuresFile, json_encode(['test' => 'data']));
+
+        $mockResponse = new Response(200, [], json_encode([
+            'fixes' => [
+                ['suggestion' => 'Generic fix'],
+            ],
+            'minimal_report' => 'OK',
+        ]));
+
+        $mock = new MockHandler([$mockResponse]);
+        $client = new Client(['handler' => HandlerStack::create($mock)]);
+
+        ($this->createCommand)($client);
+
+        $this->artisan('analyze', [
+            '--api-token' => 'test-token',
+            '--failures' => $failuresFile,
+        ])
+            ->assertSuccessful();
+    });
+
+    it('handles empty fixes array', function () {
+        $failuresFile = $this->tempDir.'/failures.json';
+        file_put_contents($failuresFile, json_encode(['test' => 'data']));
+
+        $mockResponse = new Response(200, [], json_encode([
+            'fixes' => [],
+            'minimal_report' => 'No fixes needed',
+        ]));
+
+        $mock = new MockHandler([$mockResponse]);
+        $client = new Client(['handler' => HandlerStack::create($mock)]);
+
+        ($this->createCommand)($client);
+
+        $this->artisan('analyze', [
+            '--api-token' => 'test-token',
+            '--failures' => $failuresFile,
+        ])
+            ->assertSuccessful()
+            ->expectsOutputToContain('No fixes needed');
+    });
+
+    it('handles response without fixes key', function () {
+        $failuresFile = $this->tempDir.'/failures.json';
+        file_put_contents($failuresFile, json_encode(['test' => 'data']));
+
+        $mockResponse = new Response(200, [], json_encode([
+            'minimal_report' => 'Analysis done',
+        ]));
+
+        $mock = new MockHandler([$mockResponse]);
+        $client = new Client(['handler' => HandlerStack::create($mock)]);
+
+        ($this->createCommand)($client);
+
+        $this->artisan('analyze', [
+            '--api-token' => 'test-token',
+            '--failures' => $failuresFile,
+        ])
+            ->assertSuccessful()
+            ->expectsOutputToContain('Analysis done');
+    });
+
+    it('handles response without minimal_report key', function () {
+        $failuresFile = $this->tempDir.'/failures.json';
+        file_put_contents($failuresFile, json_encode(['test' => 'data']));
+
+        $mockResponse = new Response(200, [], json_encode([
+            'fixes' => [],
+        ]));
+
+        $mock = new MockHandler([$mockResponse]);
+        $client = new Client(['handler' => HandlerStack::create($mock)]);
+
+        ($this->createCommand)($client);
+
+        $this->artisan('analyze', [
+            '--api-token' => 'test-token',
+            '--failures' => $failuresFile,
+        ])
+            ->assertSuccessful();
+    });
+
+    it('fails with invalid api response', function () {
+        $failuresFile = $this->tempDir.'/failures.json';
+        file_put_contents($failuresFile, json_encode(['test' => 'data']));
+
+        // Response with invalid JSON returns null on decode
+        $mockResponse = new Response(200, [], 'not json');
+
+        $mock = new MockHandler([$mockResponse]);
+        $client = new Client(['handler' => HandlerStack::create($mock)]);
+
+        ($this->createCommand)($client);
+
+        $this->artisan('analyze', [
+            '--api-token' => 'test-token',
+            '--failures' => $failuresFile,
+        ])
+            ->assertFailed()
+            ->expectsOutputToContain('Invalid response from API');
     });
 
     it('handles api error response', function () {
@@ -183,5 +358,64 @@ describe('AnalyzeCommand with mocked HTTP', function () {
         ])
             ->assertFailed()
             ->expectsOutputToContain('Request failed');
+    });
+});
+
+describe('AnalyzeCommand protected methods', function () {
+    it('detects repo from github remote', function () {
+        $command = new AnalyzeCommand;
+        $reflection = new ReflectionClass($command);
+        $method = $reflection->getMethod('detectRepo');
+        $method->setAccessible(true);
+
+        $result = $method->invoke($command, 'git@github.com:owner/repo.git');
+
+        expect($result)->toBe('owner/repo');
+    });
+
+    it('detects repo from github https remote', function () {
+        $command = new AnalyzeCommand;
+        $reflection = new ReflectionClass($command);
+        $method = $reflection->getMethod('detectRepo');
+        $method->setAccessible(true);
+
+        $result = $method->invoke($command, 'https://github.com/myorg/myrepo.git');
+
+        expect($result)->toBe('myorg/myrepo');
+    });
+
+    it('falls back to cwd basename for non-github remote', function () {
+        $command = new AnalyzeCommand;
+        $reflection = new ReflectionClass($command);
+        $method = $reflection->getMethod('detectRepo');
+        $method->setAccessible(true);
+
+        $result = $method->invoke($command, 'git@gitlab.com:owner/repo.git');
+
+        // Should fall back to basename of current directory
+        expect($result)->toBe(basename(getcwd()));
+    });
+
+    it('falls back to cwd basename for empty remote', function () {
+        $command = new AnalyzeCommand;
+        $reflection = new ReflectionClass($command);
+        $method = $reflection->getMethod('detectRepo');
+        $method->setAccessible(true);
+
+        $result = $method->invoke($command, '');
+
+        expect($result)->toBe(basename(getcwd()));
+    });
+
+    it('detects sha from git', function () {
+        $command = new AnalyzeCommand;
+        $reflection = new ReflectionClass($command);
+        $method = $reflection->getMethod('detectSha');
+        $method->setAccessible(true);
+
+        $result = $method->invoke($command);
+
+        // In a git repo, this returns a sha; outside, empty string
+        expect($result)->toBeString();
     });
 });

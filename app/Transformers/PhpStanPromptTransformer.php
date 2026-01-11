@@ -115,7 +115,7 @@ final class PhpStanPromptTransformer implements PromptTransformerInterface
             $relativePath = $this->relativePath($filePath);
             $errorCount = $fileData['errors'] ?? 0;
 
-            $prompt .= "### {$relativePath} ({$errorCount} error" . ($errorCount === 1 ? '' : 's') . ")\n\n";
+            $prompt .= "### {$relativePath} ({$errorCount} error".($errorCount === 1 ? '' : 's').")\n\n";
 
             foreach ($fileData['messages'] ?? [] as $index => $message) {
                 $prompt .= $this->formatError($index + 1, $message);
@@ -164,12 +164,6 @@ final class PhpStanPromptTransformer implements PromptTransformerInterface
         // Exact match
         if (isset(self::FIX_DIRECTIONS[$identifier])) {
             return self::FIX_DIRECTIONS[$identifier];
-        }
-
-        // Prefix match (e.g., "argument.type.strict" → "argument.type")
-        $prefix = explode('.', $identifier)[0] ?? '';
-        if (isset(self::FIX_DIRECTIONS[$prefix])) {
-            return self::FIX_DIRECTIONS[$prefix];
         }
 
         // Infer from message
