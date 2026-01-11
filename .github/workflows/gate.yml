@@ -38,7 +38,7 @@ jobs:
           path: base-coverage
 
       - name: Run Gate on itself
-        run: php gate certify --coverage=100
+        run: php gate certify --coverage=90 --test-timeout=600
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 

@@ -47,6 +47,10 @@ inputs:
     description: 'Post coverage report as PR comment'
     required: false
     default: 'true'
+  test-timeout:
+    description: 'Test execution timeout in seconds (default: 300, max: 900)'
+    required: false
+    default: '300'
 
 outputs:
   verdict:
@@ -122,6 +126,7 @@ runs:
           certify|*)
             php ${{ github.action_path }}/gate certify \
               --coverage=${{ inputs.coverage-threshold }} \
+              --test-timeout=${{ inputs.test-timeout }} \
               --token=${{ inputs.github-token }} \
               ${{ inputs.compact == 'true' && '--compact' || '' }}
             ;;

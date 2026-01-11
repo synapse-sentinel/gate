@@ -6,7 +6,6 @@ namespace App\Commands;
 
 use App\Branding;
 use App\Checks\CheckInterface;
-use App\Checks\CheckResult;
 use App\Checks\PestSyntaxValidator;
 use App\Checks\SecurityScanner;
 use App\Checks\TestRunner;
@@ -24,6 +23,7 @@ final class CertifyCommand extends Command
 {
     protected $signature = 'certify
         {--coverage=80 : Minimum coverage threshold percentage}
+        {--test-timeout=300 : Test execution timeout in seconds (default: 300)}
         {--token= : GitHub token for Checks API}
         {--stop-on-failure : Stop at first failing check}
         {--compact : Show single-line output instead of verbose}';
@@ -53,6 +53,7 @@ final class CertifyCommand extends Command
     public function handle(): int
     {
         $coverageThreshold = (int) $this->option('coverage');
+        $testTimeout = (int) $this->option('test-timeout');
         $optionToken = $this->option('token');
         $envToken = getenv('GITHUB_TOKEN');
         $token = $optionToken ?: $envToken ?: null;
@@ -62,7 +63,7 @@ final class CertifyCommand extends Command
         $workingDirectory = getcwd();
 
         $checks = $this->checks ?? [
-            new TestRunner($coverageThreshold),
+            new TestRunner($coverageThreshold, $testTimeout),
             new SecurityScanner,
             new PestSyntaxValidator,
         ];
@@ -123,7 +124,7 @@ final class CertifyCommand extends Command
             $checksClient->postCertificationComment($checkResults);
         } else {
             // Post actionable prompt with fix directions on failure
-            $assembler = new PromptAssembler();
+            $assembler = new PromptAssembler;
             $assembled = $assembler->assemble($rawOutputs);
 
             if ($assembled['prompt'] !== '') {

@@ -25,10 +25,28 @@ class CheckCommand extends Command
         'verdict' => 'pending',
     ];
 
+    /** @var array<string, mixed>|null */
+    private ?array $mockResults = null;
+
+    /** @internal For testing only */
+    public function withMockResults(array $results): self
+    {
+        $this->mockResults = $results;
+
+        return $this;
+    }
+
     public function handle(): int
     {
         $this->info('🔒 Synapse Sentinel Gate');
         $this->newLine();
+
+        // Use mock results for testing if provided
+        if ($this->mockResults !== null) {
+            $this->results = array_merge($this->results, $this->mockResults);
+
+            return $this->outputResults();
+        }
 
         if (! $this->option('no-tests')) {
             $this->runTests();
