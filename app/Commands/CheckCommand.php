@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Commands;
 
+use Closure;
 use LaravelZero\Framework\Commands\Command;
 use Symfony\Component\Process\Process;
 
@@ -25,10 +26,47 @@ class CheckCommand extends Command
         'verdict' => 'pending',
     ];
 
+    /** @var array<string, mixed>|null */
+    private ?array $mockResults = null;
+
+    private ?Closure $processFactory = null;
+
+    /** @internal For testing only */
+    public function withMockResults(array $results): self
+    {
+        $this->mockResults = $results;
+
+        return $this;
+    }
+
+    /** @internal For testing only - factory receives command array, returns Process */
+    public function withProcessFactory(Closure $factory): self
+    {
+        $this->processFactory = $factory;
+
+        return $this;
+    }
+
+    protected function createProcess(array $command): Process
+    {
+        if ($this->processFactory) {
+            return ($this->processFactory)($command);
+        }
+
+        return new Process($command);
+    }
+
     public function handle(): int
     {
         $this->info('🔒 Synapse Sentinel Gate');
         $this->newLine();
+
+        // Use mock results for testing if provided
+        if ($this->mockResults !== null) {
+            $this->results = array_merge($this->results, $this->mockResults);
+
+            return $this->outputResults();
+        }
 
         if (! $this->option('no-tests')) {
             $this->runTests();
@@ -48,7 +86,7 @@ class CheckCommand extends Command
     protected function runTests(): void
     {
         $this->task('Running tests with coverage', function () {
-            $process = new Process([
+            $process = $this->createProcess([
                 'vendor/bin/pest',
                 '--coverage',
                 '--coverage-clover=coverage.xml',
@@ -78,7 +116,7 @@ class CheckCommand extends Command
     protected function runPhpstan(): void
     {
         $this->task('Running PHPStan analysis', function () {
-            $process = new Process([
+            $process = $this->createProcess([
                 'vendor/bin/phpstan',
                 'analyse',
                 '--error-format=json',
@@ -102,7 +140,7 @@ class CheckCommand extends Command
     protected function runStyle(): void
     {
         $this->task('Checking code style', function () {
-            $process = new Process([
+            $process = $this->createProcess([
                 'vendor/bin/pint',
                 '--test',
             ]);

@@ -18,6 +18,7 @@ final class TestRunner implements CheckInterface
 
     public function __construct(
         private readonly int $coverageThreshold = 100,
+        private readonly int $testTimeout = 300,
         private readonly PestOutputParser $parser = new PestOutputParser,
         private readonly ProcessRunner $processRunner = new SymfonyProcessRunner,
     ) {}
@@ -45,7 +46,7 @@ final class TestRunner implements CheckInterface
         $result = $this->processRunner->run(
             ['vendor/bin/pest', '--coverage', "--min={$this->coverageThreshold}", "--coverage-clover={$cloverPath}", '--colors=never'],
             $workingDirectory,
-            timeout: 300,
+            timeout: $this->testTimeout,
         );
 
         // Post coverage comment to PR if enabled
