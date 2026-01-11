@@ -37,12 +37,8 @@ jobs:
           name: coverage-report
           path: base-coverage
 
-      - name: Debug - Run tests directly
-        run: vendor/bin/pest --colors=never 2>&1 | tail -50
-        continue-on-error: true
-
       - name: Run Gate on itself
-        run: php gate certify --coverage=80 --test-timeout=600
+        run: php gate certify --coverage=90 --test-timeout=600
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
