@@ -51,5 +51,26 @@ describe('SymfonyProcessRunner', function () {
 
             expect($result->successful)->toBeTrue();
         });
+
+        it('returns failed result with exit code 124 on process timeout', function () {
+            $runner = new SymfonyProcessRunner;
+            $result = $runner->run(['sleep', '30'], sys_get_temp_dir(), timeout: 1);
+
+            expect($result)->toBeInstanceOf(ProcessResult::class);
+            expect($result->successful)->toBeFalse();
+            expect($result->exitCode)->toBe(124);
+            expect($result->output)->toContain('Process timed out after 1 seconds');
+        });
+
+        it('returns failed result when process is killed by signal', function () {
+            $runner = new SymfonyProcessRunner;
+            // bash -c that sends SIGKILL to itself
+            $result = $runner->run(['bash', '-c', 'kill -9 $$'], sys_get_temp_dir());
+
+            expect($result)->toBeInstanceOf(ProcessResult::class);
+            expect($result->successful)->toBeFalse();
+            expect($result->output)->toContain('Process killed by signal');
+            expect($result->exitCode)->toBe(137);
+        });
     });
 });
