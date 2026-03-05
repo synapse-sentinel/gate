@@ -374,6 +374,132 @@ describe('ChecksClient', function () {
         });
     });
 
+    describe('postActionablePrompt', function () {
+        it('returns false when not available', function () {
+            $client = new ChecksClient(token: null);
+
+            expect($client->postActionablePrompt('Fix this'))->toBeFalse();
+        });
+
+        it('returns false when no PR number', function () {
+            $client = new ChecksClient(
+                token: 'test-token',
+                repo: 'owner/repo',
+                sha: 'abc123',
+                prNumber: null,
+            );
+
+            expect($client->postActionablePrompt('Fix this'))->toBeFalse();
+        });
+
+        it('returns true for empty prompt', function () {
+            $client = new ChecksClient(
+                token: 'test-token',
+                repo: 'owner/repo',
+                sha: 'abc123',
+                prNumber: 42,
+            );
+
+            expect($client->postActionablePrompt(''))->toBeTrue();
+        });
+
+        it('returns true on successful API call', function () {
+            $mock = new MockHandler([
+                new Response(201),
+            ]);
+            $handlerStack = HandlerStack::create($mock);
+            $httpClient = new Client(['handler' => $handlerStack]);
+
+            $client = new ChecksClient(
+                token: 'test-token',
+                client: $httpClient,
+                repo: 'owner/repo',
+                sha: 'abc123',
+                prNumber: 42,
+            );
+
+            expect($client->postActionablePrompt('Fix this code'))->toBeTrue();
+        });
+
+        it('returns false and outputs error on API error', function () {
+            $mock = new MockHandler([
+                new RequestException('API Error', new Request('POST', 'test')),
+            ]);
+            $handlerStack = HandlerStack::create($mock);
+            $httpClient = new Client(['handler' => $handlerStack]);
+
+            $client = new ChecksClient(
+                token: 'test-token',
+                client: $httpClient,
+                repo: 'owner/repo',
+                sha: 'abc123',
+                prNumber: 42,
+            );
+
+            ob_start();
+            $result = $client->postActionablePrompt('Fix this');
+            $output = ob_get_clean();
+
+            expect($result)->toBeFalse();
+            expect($output)->toContain('::error::');
+            expect($output)->toContain('API Error');
+        });
+
+        it('outputs specific error for 403 permission denied', function () {
+            $mock = new MockHandler([
+                new RequestException(
+                    'Forbidden',
+                    new Request('POST', 'test'),
+                    new Response(403)
+                ),
+            ]);
+            $handlerStack = HandlerStack::create($mock);
+            $httpClient = new Client(['handler' => $handlerStack]);
+
+            $client = new ChecksClient(
+                token: 'test-token',
+                client: $httpClient,
+                repo: 'owner/repo',
+                sha: 'abc123',
+                prNumber: 42,
+            );
+
+            ob_start();
+            $client->postActionablePrompt('Fix this');
+            $output = ob_get_clean();
+
+            expect($output)->toContain('::error::');
+            expect($output)->toContain('Permission denied');
+        });
+
+        it('outputs specific error for 429 rate limit', function () {
+            $mock = new MockHandler([
+                new RequestException(
+                    'Too Many Requests',
+                    new Request('POST', 'test'),
+                    new Response(429)
+                ),
+            ]);
+            $handlerStack = HandlerStack::create($mock);
+            $httpClient = new Client(['handler' => $handlerStack]);
+
+            $client = new ChecksClient(
+                token: 'test-token',
+                client: $httpClient,
+                repo: 'owner/repo',
+                sha: 'abc123',
+                prNumber: 42,
+            );
+
+            ob_start();
+            $client->postActionablePrompt('Fix this');
+            $output = ob_get_clean();
+
+            expect($output)->toContain('::error::');
+            expect($output)->toContain('Rate limit exceeded');
+        });
+    });
+
     describe('postCertificationComment', function () {
         it('returns false when not available', function () {
             $client = new ChecksClient(token: null);

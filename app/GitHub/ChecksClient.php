@@ -6,6 +6,7 @@ namespace App\GitHub;
 
 use GuzzleHttp\Client;
 use GuzzleHttp\Exception\GuzzleException;
+use GuzzleHttp\Exception\RequestException;
 
 final class ChecksClient
 {
@@ -89,6 +90,7 @@ final class ChecksClient
             return $data['id'] ?? null;
         } catch (GuzzleException $e) {
             $this->logError('createCheck', $e);
+
             return null;
         }
     }
@@ -119,6 +121,7 @@ final class ChecksClient
             return true;
         } catch (GuzzleException $e) {
             $this->logError('completeCheck', $e);
+
             return false;
         }
     }
@@ -155,6 +158,7 @@ final class ChecksClient
             return true;
         } catch (GuzzleException $e) {
             $this->logError('reportCheck', $e);
+
             return false;
         }
     }
@@ -199,6 +203,7 @@ MARKDOWN;
             return true;
         } catch (GuzzleException $e) {
             $this->logError('postCertificationComment', $e);
+
             return false;
         }
     }
@@ -234,6 +239,7 @@ MARKDOWN;
             return true;
         } catch (GuzzleException $e) {
             $this->logError('postActionablePrompt', $e);
+
             return false;
         }
     }
@@ -242,7 +248,7 @@ MARKDOWN;
     {
         echo "::error::GitHub API error in {$method}: {$e->getMessage()}\n";
 
-        if ($e->hasResponse()) {
+        if ($e instanceof RequestException && $e->hasResponse()) {
             $response = $e->getResponse();
             $statusCode = $response->getStatusCode();
 

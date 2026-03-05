@@ -95,7 +95,6 @@ final class TestFailurePromptTransformer implements PromptTransformerInterface
     /**
      * Extract test cases from a test suite.
      *
-     * @param  \SimpleXMLElement  $suite
      * @param  array<array<string, mixed>>  $failures
      * @param  array<array<string, mixed>>  $errors
      */
@@ -246,7 +245,7 @@ final class TestFailurePromptTransformer implements PromptTransformerInterface
 
         // Truncate if too long
         if (strlen($clean) > 500) {
-            $clean = substr($clean, 0, 500) . '... (truncated)';
+            $clean = substr($clean, 0, 500).'... (truncated)';
         }
 
         return trim($clean);
