@@ -4,8 +4,9 @@ declare(strict_types=1);
 
 namespace App\Commands;
 
+use App\Contracts\ProcessRunner;
+use App\Services\SymfonyProcessRunner;
 use LaravelZero\Framework\Commands\Command;
-use Symfony\Component\Process\Process;
 
 class CheckCommand extends Command
 {
@@ -25,96 +26,114 @@ class CheckCommand extends Command
         'verdict' => 'pending',
     ];
 
+    private ?ProcessRunner $processRunner = null;
+
+    /** @internal For testing only */
+    public function withMocks(?ProcessRunner $processRunner = null): self
+    {
+        $this->processRunner = $processRunner;
+
+        return $this;
+    }
+
     public function handle(): int
     {
+        $processRunner = $this->processRunner ?? new SymfonyProcessRunner;
+
         $this->info('🔒 Synapse Sentinel Gate');
         $this->newLine();
 
         if (! $this->option('no-tests')) {
-            $this->runTests();
+            $this->runTests($processRunner);
         }
 
         if (! $this->option('no-phpstan')) {
-            $this->runPhpstan();
+            $this->runPhpstan($processRunner);
         }
 
         if (! $this->option('no-style')) {
-            $this->runStyle();
+            $this->runStyle($processRunner);
         }
 
         return $this->outputResults();
     }
 
-    protected function runTests(): void
+    protected function runTests(ProcessRunner $processRunner): void
     {
-        $this->task('Running tests with coverage', function () {
-            $process = new Process([
-                'vendor/bin/pest',
-                '--coverage',
-                '--coverage-clover=coverage.xml',
-                '--no-interaction',
-            ]);
-            $process->setTimeout(300);
-            $process->run();
+        $this->task('Running tests with coverage', function () use ($processRunner) {
+            $result = $processRunner->run(
+                command: [
+                    'vendor/bin/pest',
+                    '--coverage',
+                    '--coverage-clover=coverage.xml',
+                    '--no-interaction',
+                ],
+                workingDirectory: getcwd(),
+                timeout: 300,
+            );
 
             $this->results['tests'] = [
-                'success' => $process->isSuccessful(),
-                'output' => $process->getOutput(),
-                'exit_code' => $process->getExitCode(),
+                'success' => $result->successful,
+                'output' => $result->output,
+                'exit_code' => $result->exitCode,
             ];
 
             // Parse coverage from output
-            if (preg_match('/Coverage:\s+([\d.]+)%/', $process->getOutput(), $matches)) {
+            if (preg_match('/Coverage:\s+([\d.]+)%/', $result->output, $matches)) {
                 $this->results['coverage'] = [
                     'percentage' => (float) $matches[1],
                     'meets_threshold' => (float) $matches[1] >= 100,
                 ];
             }
 
-            return $process->isSuccessful();
+            return $result->successful;
         });
     }
 
-    protected function runPhpstan(): void
+    protected function runPhpstan(ProcessRunner $processRunner): void
     {
-        $this->task('Running PHPStan analysis', function () {
-            $process = new Process([
-                'vendor/bin/phpstan',
-                'analyse',
-                '--error-format=json',
-                '--no-progress',
-            ]);
-            $process->setTimeout(120);
-            $process->run();
+        $this->task('Running PHPStan analysis', function () use ($processRunner) {
+            $result = $processRunner->run(
+                command: [
+                    'vendor/bin/phpstan',
+                    'analyse',
+                    '--error-format=json',
+                    '--no-progress',
+                ],
+                workingDirectory: getcwd(),
+                timeout: 120,
+            );
 
-            $output = json_decode($process->getOutput(), true) ?? [];
+            $output = json_decode($result->output, true) ?? [];
 
             $this->results['phpstan'] = [
-                'success' => $process->isSuccessful(),
+                'success' => $result->successful,
                 'errors' => $output['totals']['errors'] ?? 0,
                 'files' => $output['files'] ?? [],
             ];
 
-            return $process->isSuccessful();
+            return $result->successful;
         });
     }
 
-    protected function runStyle(): void
+    protected function runStyle(ProcessRunner $processRunner): void
     {
-        $this->task('Checking code style', function () {
-            $process = new Process([
-                'vendor/bin/pint',
-                '--test',
-            ]);
-            $process->setTimeout(60);
-            $process->run();
+        $this->task('Checking code style', function () use ($processRunner) {
+            $result = $processRunner->run(
+                command: [
+                    'vendor/bin/pint',
+                    '--test',
+                ],
+                workingDirectory: getcwd(),
+                timeout: 60,
+            );
 
             $this->results['style'] = [
-                'success' => $process->isSuccessful(),
-                'output' => $process->getOutput(),
+                'success' => $result->successful,
+                'output' => $result->output,
             ];
 
-            return $process->isSuccessful();
+            return $result->successful;
         });
     }
 
