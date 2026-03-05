@@ -6,7 +6,6 @@ namespace App\Commands;
 
 use App\Branding;
 use App\Checks\CheckInterface;
-use App\Checks\CheckResult;
 use App\Checks\PestSyntaxValidator;
 use App\Checks\SecurityScanner;
 use App\Checks\TestRunner;
@@ -123,7 +122,7 @@ final class CertifyCommand extends Command
             $checksClient->postCertificationComment($checkResults);
         } else {
             // Post actionable prompt with fix directions on failure
-            $assembler = new PromptAssembler();
+            $assembler = new PromptAssembler;
             $assembled = $assembler->assemble($rawOutputs);
 
             if ($assembled['prompt'] !== '') {
