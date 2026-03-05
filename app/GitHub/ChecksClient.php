@@ -89,6 +89,7 @@ final class ChecksClient
             return $data['id'] ?? null;
         } catch (GuzzleException $e) {
             $this->logError('createCheck', $e);
+
             return null;
         }
     }
@@ -119,6 +120,7 @@ final class ChecksClient
             return true;
         } catch (GuzzleException $e) {
             $this->logError('completeCheck', $e);
+
             return false;
         }
     }
@@ -155,6 +157,7 @@ final class ChecksClient
             return true;
         } catch (GuzzleException $e) {
             $this->logError('reportCheck', $e);
+
             return false;
         }
     }
@@ -199,6 +202,7 @@ MARKDOWN;
             return true;
         } catch (GuzzleException $e) {
             $this->logError('postCertificationComment', $e);
+
             return false;
         }
     }
@@ -234,6 +238,7 @@ MARKDOWN;
             return true;
         } catch (GuzzleException $e) {
             $this->logError('postActionablePrompt', $e);
+
             return false;
         }
     }
