@@ -115,7 +115,7 @@ final class PhpStanPromptTransformer implements PromptTransformerInterface
             $relativePath = $this->relativePath($filePath);
             $errorCount = $fileData['errors'] ?? 0;
 
-            $prompt .= "### {$relativePath} ({$errorCount} error" . ($errorCount === 1 ? '' : 's') . ")\n\n";
+            $prompt .= "### {$relativePath} ({$errorCount} error".($errorCount === 1 ? '' : 's').")\n\n";
 
             foreach ($fileData['messages'] ?? [] as $index => $message) {
                 $prompt .= $this->formatError($index + 1, $message);
