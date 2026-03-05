@@ -8,7 +8,7 @@ use GuzzleHttp\Client;
 use GuzzleHttp\Exception\GuzzleException;
 use LaravelZero\Framework\Commands\Command;
 
-class AnalyzeCommand extends Command
+final class AnalyzeCommand extends Command
 {
     protected $signature = 'analyze
         {--failures= : JSON file with failures to analyze}
@@ -16,6 +16,22 @@ class AnalyzeCommand extends Command
         {--api-token= : API token for authentication}';
 
     protected $description = 'Send failures to Prefrontal Cortex for AI analysis';
+
+    private ?Client $httpClient = null;
+
+    private ?string $repoOverride = null;
+
+    private ?string $shaOverride = null;
+
+    /** @internal For testing only */
+    public function withMocks(?Client $httpClient = null, ?string $repo = null, ?string $sha = null): self
+    {
+        $this->httpClient = $httpClient;
+        $this->repoOverride = $repo;
+        $this->shaOverride = $sha;
+
+        return $this;
+    }
 
     public function handle(): int
     {
@@ -52,7 +68,7 @@ class AnalyzeCommand extends Command
         $this->info('🧠 Sending failures to Prefrontal Cortex for analysis...');
 
         try {
-            $client = new Client([
+            $client = $this->httpClient ?? new Client([
                 'base_uri' => $apiUrl,
                 'timeout' => 60,
             ]);
@@ -93,6 +109,10 @@ class AnalyzeCommand extends Command
 
     protected function detectRepo(): string
     {
+        if ($this->repoOverride !== null) {
+            return $this->repoOverride;
+        }
+
         $remote = trim(shell_exec('git remote get-url origin 2>/dev/null') ?? '');
         if (preg_match('#github\.com[:/](.+?)(?:\.git)?$#', $remote, $matches)) {
             return $matches[1];
@@ -103,6 +123,10 @@ class AnalyzeCommand extends Command
 
     protected function detectSha(): string
     {
+        if ($this->shaOverride !== null) {
+            return $this->shaOverride;
+        }
+
         return trim(shell_exec('git rev-parse HEAD 2>/dev/null') ?? '');
     }
 
