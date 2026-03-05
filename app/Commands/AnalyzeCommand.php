@@ -17,6 +17,22 @@ class AnalyzeCommand extends Command
 
     protected $description = 'Send failures to Prefrontal Cortex for AI analysis';
 
+    private ?Client $httpClient = null;
+
+    private ?string $mockRepo = null;
+
+    private ?string $mockSha = null;
+
+    /** @internal For testing only */
+    public function withMocks(?Client $httpClient = null, ?string $repo = null, ?string $sha = null): self
+    {
+        $this->httpClient = $httpClient;
+        $this->mockRepo = $repo;
+        $this->mockSha = $sha;
+
+        return $this;
+    }
+
     public function handle(): int
     {
         $apiUrl = $this->option('api-url') ?? getenv('PREFRONTAL_API_URL') ?: 'https://prefrontal.jordanpartridge.us';
@@ -52,7 +68,7 @@ class AnalyzeCommand extends Command
         $this->info('🧠 Sending failures to Prefrontal Cortex for analysis...');
 
         try {
-            $client = new Client([
+            $client = $this->httpClient ?? new Client([
                 'base_uri' => $apiUrl,
                 'timeout' => 60,
             ]);
@@ -64,8 +80,8 @@ class AnalyzeCommand extends Command
                     'Content-Type' => 'application/json',
                 ],
                 'json' => [
-                    'repo' => $this->detectRepo(),
-                    'sha' => $this->detectSha(),
+                    'repo' => $this->mockRepo ?? $this->detectRepo(),
+                    'sha' => $this->mockSha ?? $this->detectSha(),
                     'failures' => $failures,
                 ],
             ]);
