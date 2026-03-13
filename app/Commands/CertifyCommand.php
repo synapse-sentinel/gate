@@ -18,7 +18,6 @@ use LaravelZero\Framework\Commands\Command;
 use function Laravel\Prompts\error;
 use function Laravel\Prompts\info;
 use function Laravel\Prompts\spin;
-use function Laravel\Prompts\table;
 
 final class CertifyCommand extends Command
 {
@@ -146,10 +145,11 @@ final class CertifyCommand extends Command
             error('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
 
             if (! empty($failureRows)) {
-                table(
-                    headers: ['Check', 'Issue'],
-                    rows: $failureRows
-                );
+                $this->newLine();
+                foreach ($failureRows as $row) {
+                    $this->line("  <fg=red>✗</> <fg=white;options=bold>{$row[0]}</>: {$row[1]}");
+                }
+                $this->newLine();
             }
         }
 

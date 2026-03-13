@@ -322,6 +322,61 @@ describe('CertifyCommand', function () {
                 ->assertFailed();
         });
 
+        it('displays full error messages without truncation', function () {
+            $longDetail = 'Error in src/Services/PaymentGateway.php: Method processTransaction() has cyclomatic complexity of 25 which exceeds the configured maximum of 10. Consider refactoring this method into smaller, more focused methods to improve maintainability and testability.';
+
+            $failingCheck = Mockery::mock(CheckInterface::class);
+            $failingCheck->shouldReceive('name')->andReturn('Tests');
+            $failingCheck->shouldReceive('run')
+                ->once()
+                ->andReturn(CheckResult::fail('1 test failed', [$longDetail]));
+
+            $mock = new MockHandler([
+                new Response(201),
+                new Response(201),
+            ]);
+            $httpClient = new Client(['handler' => HandlerStack::create($mock)]);
+            $checksClient = new ChecksClient('token', $httpClient, 'owner/repo', 'sha123');
+
+            ($this->createCommand)([$failingCheck], $checksClient);
+
+            $this->artisan('certify')
+                ->expectsOutputToContain($longDetail)
+                ->assertFailed();
+        });
+
+        it('displays multiple long error details from different checks', function () {
+            $detail1 = 'FAIL Tests\\Unit\\OrderServiceTest > it calculates the total price correctly including tax, shipping, and discount adjustments for international orders';
+            $detail2 = 'CVE-2024-9999: Critical vulnerability found in vendor/acme/library v2.3.1 - Remote code execution via deserialization of untrusted data in JsonParser::decode()';
+
+            $failingCheck1 = Mockery::mock(CheckInterface::class);
+            $failingCheck1->shouldReceive('name')->andReturn('Tests');
+            $failingCheck1->shouldReceive('run')
+                ->once()
+                ->andReturn(CheckResult::fail('Tests failed', [$detail1]));
+
+            $failingCheck2 = Mockery::mock(CheckInterface::class);
+            $failingCheck2->shouldReceive('name')->andReturn('Security');
+            $failingCheck2->shouldReceive('run')
+                ->once()
+                ->andReturn(CheckResult::fail('Security failed', [$detail2]));
+
+            $mock = new MockHandler([
+                new Response(201),
+                new Response(201),
+                new Response(201),
+            ]);
+            $httpClient = new Client(['handler' => HandlerStack::create($mock)]);
+            $checksClient = new ChecksClient('token', $httpClient, 'owner/repo', 'sha123');
+
+            ($this->createCommand)([$failingCheck1, $failingCheck2], $checksClient);
+
+            $this->artisan('certify')
+                ->expectsOutputToContain($detail1)
+                ->expectsOutputToContain($detail2)
+                ->assertFailed();
+        });
+
         it('shortens check names in compact output', function () {
             // This test covers the shortName() method by using the actual check names
             $testsCheck = Mockery::mock(CheckInterface::class);
