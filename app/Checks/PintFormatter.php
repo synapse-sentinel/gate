@@ -51,10 +51,15 @@ final class PintFormatter implements CheckInterface
         }
 
         $files = $data['files'] ?? [];
-        $details = array_map(
-            fn (array $f): string => $f['path'].' ('.implode(', ', $f['fixers'] ?? []).')',
-            array_slice($files, 0, 20),
-        );
+        $details = [];
+
+        foreach (array_slice($files, 0, 20) as $f) {
+            if (is_array($f) && isset($f['path'])) {
+                $details[] = $f['path'].' ('.implode(', ', $f['fixers'] ?? []).')';
+            } elseif (is_string($f)) {
+                $details[] = $f;
+            }
+        }
 
         return CheckResult::fail(
             count($files).' file(s) need formatting',

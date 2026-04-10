@@ -22,8 +22,8 @@ final class PromptAssembler
     public function __construct()
     {
         $this->transformers = [
-            new PhpStanPromptTransformer(),
-            new TestFailurePromptTransformer(),
+            new PhpStanPromptTransformer,
+            new TestFailurePromptTransformer,
         ];
     }
 
@@ -94,7 +94,7 @@ final class PromptAssembler
     private function buildCombinedPrompt(array $failedChecks): string
     {
         $count = count($failedChecks);
-        $prompt = "# 🔧 Synapse Sentinel: {$count} check" . ($count === 1 ? '' : 's') . " need attention\n\n";
+        $prompt = "# 🔧 Synapse Sentinel: {$count} check".($count === 1 ? '' : 's')." need attention\n\n";
         $prompt .= "The following issues must be resolved before this PR can be merged:\n\n";
 
         foreach ($failedChecks as $checkName => $section) {
@@ -117,6 +117,6 @@ final class PromptAssembler
             return $text;
         }
 
-        return substr($text, 0, $maxLength) . "\n... (truncated)";
+        return substr($text, 0, $maxLength)."\n... (truncated)";
     }
 }
