@@ -60,6 +60,7 @@ describe('CertifyCommand', function () {
                 new Response(201), // First check
                 new Response(201), // Second check
                 new Response(201), // Certification check
+                new Response(201), // Actionable prompt comment
             ]);
             $httpClient = new Client(['handler' => HandlerStack::create($mock)]);
             $checksClient = new ChecksClient('token', $httpClient, 'owner/repo', 'sha123');
@@ -80,6 +81,7 @@ describe('CertifyCommand', function () {
             $mock = new MockHandler([
                 new Response(201),
                 new Response(201),
+                new Response(201), // Actionable prompt
             ]);
             $httpClient = new Client(['handler' => HandlerStack::create($mock)]);
             $checksClient = new ChecksClient('token', $httpClient, 'owner/repo', 'sha123');
@@ -165,6 +167,7 @@ describe('CertifyCommand', function () {
                 new Response(201),
                 new Response(201),
                 new Response(201),
+                new Response(201), // Actionable prompt
             ]);
             $httpClient = new Client(['handler' => HandlerStack::create($mock)]);
             $checksClient = new ChecksClient('token', $httpClient, 'owner/repo', 'sha123');
@@ -223,6 +226,7 @@ describe('CertifyCommand', function () {
             $mock = new MockHandler([
                 new Response(201), // First check
                 new Response(201), // Certification
+                new Response(201), // Actionable prompt
             ]);
             $httpClient = new Client(['handler' => HandlerStack::create($mock)]);
             $checksClient = new ChecksClient('token', $httpClient, 'owner/repo', 'sha123');
@@ -250,6 +254,7 @@ describe('CertifyCommand', function () {
                 new Response(201), // First check
                 new Response(201), // Second check
                 new Response(201), // Certification
+                new Response(201), // Actionable prompt
             ]);
             $httpClient = new Client(['handler' => HandlerStack::create($mock)]);
             $checksClient = new ChecksClient('token', $httpClient, 'owner/repo', 'sha123');
@@ -312,6 +317,7 @@ describe('CertifyCommand', function () {
                 new Response(201),
                 new Response(201),
                 new Response(201),
+                new Response(201), // Actionable prompt
             ]);
             $httpClient = new Client(['handler' => HandlerStack::create($mock)]);
             $checksClient = new ChecksClient('token', $httpClient, 'owner/repo', 'sha123');

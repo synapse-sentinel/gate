@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Checks\CheckInterface;
 use App\Checks\SecurityScanner;
 use App\Contracts\ProcessResult;
 use App\Contracts\ProcessRunner;
@@ -14,7 +15,7 @@ describe('SecurityScanner', function () {
 
     it('implements CheckInterface', function () {
         $scanner = new SecurityScanner;
-        expect($scanner)->toBeInstanceOf(\App\Checks\CheckInterface::class);
+        expect($scanner)->toBeInstanceOf(CheckInterface::class);
     });
 
     it('returns pass when no vulnerabilities found', function () {

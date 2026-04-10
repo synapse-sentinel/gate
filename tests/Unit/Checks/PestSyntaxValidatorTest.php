@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Checks\CheckInterface;
 use App\Checks\PestSyntaxValidator;
 
 describe('PestSyntaxValidator', function () {
@@ -12,7 +13,7 @@ describe('PestSyntaxValidator', function () {
 
     it('implements CheckInterface', function () {
         $validator = new PestSyntaxValidator;
-        expect($validator)->toBeInstanceOf(\App\Checks\CheckInterface::class);
+        expect($validator)->toBeInstanceOf(CheckInterface::class);
     });
 
     it('passes when test files use describe/it blocks', function () {
