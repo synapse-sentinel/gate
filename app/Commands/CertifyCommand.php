@@ -6,6 +6,7 @@ namespace App\Commands;
 
 use App\Branding;
 use App\Checks\CheckInterface;
+use App\Checks\CheckResult;
 use App\Checks\PestSyntaxValidator;
 use App\Checks\PhpStanAnalyzer;
 use App\Checks\PintFormatter;
@@ -184,7 +185,7 @@ final class CertifyCommand extends Command
         string $workingDirectory,
         ChecksClient $checksClient,
         bool $compact = false,
-    ): \App\Checks\CheckResult {
+    ): CheckResult {
         if ($compact) {
             $result = $check->run($workingDirectory);
         } else {

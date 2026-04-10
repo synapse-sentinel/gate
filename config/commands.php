@@ -1,17 +1,23 @@
 <?php
 
 declare(strict_types=1);
+use Illuminate\Console\Scheduling\ScheduleFinishCommand;
+use Illuminate\Console\Scheduling\ScheduleListCommand;
+use Illuminate\Console\Scheduling\ScheduleRunCommand;
+use NunoMaduro\LaravelConsoleSummary\SummaryCommand;
+use Symfony\Component\Console\Command\DumpCompletionCommand;
+use Symfony\Component\Console\Command\HelpCommand;
 
 return [
     'paths' => [app_path('Commands')],
     'add' => [],
     'hidden' => [
-        NunoMaduro\LaravelConsoleSummary\SummaryCommand::class,
-        Symfony\Component\Console\Command\DumpCompletionCommand::class,
-        Symfony\Component\Console\Command\HelpCommand::class,
-        Illuminate\Console\Scheduling\ScheduleRunCommand::class,
-        Illuminate\Console\Scheduling\ScheduleListCommand::class,
-        Illuminate\Console\Scheduling\ScheduleFinishCommand::class,
+        SummaryCommand::class,
+        DumpCompletionCommand::class,
+        HelpCommand::class,
+        ScheduleRunCommand::class,
+        ScheduleListCommand::class,
+        ScheduleFinishCommand::class,
     ],
     'remove' => [],
 ];

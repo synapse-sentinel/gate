@@ -2,9 +2,12 @@
 
 declare(strict_types=1);
 
+use App\Checks\CheckInterface;
 use App\Checks\TestRunner;
 use App\Contracts\ProcessResult;
 use App\Contracts\ProcessRunner;
+use App\GitHub\CommentsClient;
+use App\Services\CoverageReporter;
 use App\Services\PestOutputParser;
 
 describe('TestRunner', function () {
@@ -15,7 +18,7 @@ describe('TestRunner', function () {
 
     it('implements CheckInterface', function () {
         $runner = new TestRunner(coverageThreshold: 80);
-        expect($runner)->toBeInstanceOf(\App\Checks\CheckInterface::class);
+        expect($runner)->toBeInstanceOf(CheckInterface::class);
     });
 
     it('returns pass when tests pass and coverage meets threshold', function () {
@@ -292,12 +295,12 @@ OUTPUT,
                 ));
 
             // Mock CommentsClient
-            $mockCommentsClient = mock(\App\GitHub\CommentsClient::class);
+            $mockCommentsClient = mock(CommentsClient::class);
             $mockCommentsClient->shouldReceive('isAvailable')->andReturn(true);
             $mockCommentsClient->shouldReceive('postOrUpdateComment')->once()->andReturn(true);
 
             // Mock CoverageReporter
-            $mockReporter = mock(\App\Services\CoverageReporter::class);
+            $mockReporter = mock(CoverageReporter::class);
             $mockReporter->shouldReceive('generatePRComment')
                 ->with($tempDir.'/coverage.xml')
                 ->once()
@@ -337,11 +340,11 @@ OUTPUT,
                 ));
 
             // Mock CommentsClient - not available
-            $mockCommentsClient = mock(\App\GitHub\CommentsClient::class);
+            $mockCommentsClient = mock(CommentsClient::class);
             $mockCommentsClient->shouldReceive('isAvailable')->andReturn(false);
             $mockCommentsClient->shouldNotReceive('postOrUpdateComment');
 
-            $mockReporter = mock(\App\Services\CoverageReporter::class);
+            $mockReporter = mock(CoverageReporter::class);
 
             $runner = new TestRunner(
                 coverageThreshold: 100,
@@ -377,13 +380,13 @@ OUTPUT,
                 ));
 
             // Mock CommentsClient
-            $mockCommentsClient = mock(\App\GitHub\CommentsClient::class);
+            $mockCommentsClient = mock(CommentsClient::class);
             $mockCommentsClient->shouldReceive('isAvailable')->andReturn(true);
 
             // Mock CoverageReporter - throws exception
-            $mockReporter = mock(\App\Services\CoverageReporter::class);
+            $mockReporter = mock(CoverageReporter::class);
             $mockReporter->shouldReceive('generatePRComment')
-                ->andThrow(new \Exception('Test error'));
+                ->andThrow(new Exception('Test error'));
 
             $runner = new TestRunner(
                 coverageThreshold: 100,

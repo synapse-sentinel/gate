@@ -5,16 +5,18 @@ declare(strict_types=1);
 namespace App\Checks;
 
 use App\Contracts\ProcessRunner;
+use App\GitHub\CommentsClient;
+use App\Services\CoverageReporter;
 use App\Services\PestOutputParser;
 use App\Services\SymfonyProcessRunner;
 
 final class TestRunner implements CheckInterface
 {
-    /** @var \App\GitHub\CommentsClient|null For testing */
-    private ?\App\GitHub\CommentsClient $commentsClient = null;
+    /** @var CommentsClient|null For testing */
+    private ?CommentsClient $commentsClient = null;
 
-    /** @var \App\Services\CoverageReporter|null For testing */
-    private ?\App\Services\CoverageReporter $coverageReporter = null;
+    /** @var CoverageReporter|null For testing */
+    private ?CoverageReporter $coverageReporter = null;
 
     public function __construct(
         private readonly int $coverageThreshold = 100,
@@ -24,8 +26,8 @@ final class TestRunner implements CheckInterface
 
     /** @internal For testing only */
     public function withCommentDependencies(
-        \App\GitHub\CommentsClient $commentsClient,
-        \App\Services\CoverageReporter $coverageReporter,
+        CommentsClient $commentsClient,
+        CoverageReporter $coverageReporter,
     ): self {
         $this->commentsClient = $commentsClient;
         $this->coverageReporter = $coverageReporter;
@@ -75,8 +77,8 @@ final class TestRunner implements CheckInterface
             return;
         }
 
-        $commentsClient = $this->commentsClient ?? new \App\GitHub\CommentsClient($token);
-        $reporter = $this->coverageReporter ?? new \App\Services\CoverageReporter($this->coverageThreshold);
+        $commentsClient = $this->commentsClient ?? new CommentsClient($token);
+        $reporter = $this->coverageReporter ?? new CoverageReporter($this->coverageThreshold);
 
         if ($commentsClient->isAvailable()) {
             try {
