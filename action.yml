@@ -39,6 +39,10 @@ inputs:
     description: 'Directory to scan for coverage (auto-detects app/ or src/ if not specified)'
     required: false
     default: ''
+  phpstan-level:
+    description: 'PHPStan analysis level (0-9). Set to -1 to skip.'
+    required: false
+    default: '5'
   compact:
     description: 'Use compact single-line output instead of verbose'
     required: false
@@ -122,6 +126,7 @@ runs:
           certify|*)
             php ${{ github.action_path }}/gate certify \
               --coverage=${{ inputs.coverage-threshold }} \
+              --phpstan-level=${{ inputs.phpstan-level }} \
               --token=${{ inputs.github-token }} \
               ${{ inputs.compact == 'true' && '--compact' || '' }}
             ;;

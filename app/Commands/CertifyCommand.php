@@ -8,6 +8,10 @@ use App\Branding;
 use App\Checks\CheckInterface;
 use App\Checks\CheckResult;
 use App\Checks\PestSyntaxValidator;
+use App\Checks\PhpStanAnalyzer;
+use App\Checks\PintFormatter;
+use App\Checks\PublishGuard;
+use App\Checks\RectorAnalyzer;
 use App\Checks\SecurityScanner;
 use App\Checks\TestRunner;
 use App\GitHub\ChecksClient;
@@ -24,6 +28,7 @@ final class CertifyCommand extends Command
 {
     protected $signature = 'certify
         {--coverage=80 : Minimum coverage threshold percentage}
+        {--phpstan-level=5 : PHPStan analysis level (0-9)}
         {--token= : GitHub token for Checks API}
         {--stop-on-failure : Stop at first failing check}
         {--compact : Show single-line output instead of verbose}';
@@ -61,10 +66,16 @@ final class CertifyCommand extends Command
         $checksClient = $this->checksClient ?? new ChecksClient($token);
         $workingDirectory = getcwd();
 
+        $phpstanLevel = (int) $this->option('phpstan-level');
+
         $checks = $this->checks ?? [
             new TestRunner($coverageThreshold),
+            new PintFormatter,
+            new PhpStanAnalyzer($phpstanLevel),
+            new RectorAnalyzer,
             new SecurityScanner,
             new PestSyntaxValidator,
+            new PublishGuard,
         ];
 
         $stopOnFailure = $this->option('stop-on-failure');
@@ -210,6 +221,8 @@ final class CertifyCommand extends Command
             'Tests & Coverage' => 'Tests',
             'Security Audit' => 'Security',
             'Pest Syntax' => 'Syntax',
+            'Pint Style' => 'Pint',
+            'Publish Guard' => 'Publish',
             default => $name,
         };
     }
